@@ -1009,6 +1009,7 @@ scene.add(sky);
 // ====== 地形 ======
 const terrainU = {
   ...U, ...cutU,
+  uDColor: { value: null }, uDHeight: { value: null }, uDTile: { value: new THREE.Vector4(0, 0, 1, 1) }, uDZ2: { value: 1 }, uDOn: { value: 0 },
   uColorTex: { value: null },
   uPrefId: { value: null },
   uPrefCol: { value: null },
@@ -1021,6 +1022,11 @@ const terrainU = {
 {
   const pid = new THREE.DataTexture(new Uint8Array([0]), 1, 1, THREE.RedFormat); pid.needsUpdate = true;
   terrainU.uPrefId.value = pid;
+}
+{
+  const c = new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1, THREE.RGBAFormat); c.needsUpdate = true;
+  terrainU.uDColor.value = c;
+  terrainU.uDHeight.value = blankTex;
 }
 const prefColData = new Uint8Array(64 * 4);
 const prefColTex = new THREE.DataTexture(prefColData, 64, 1, THREE.RGBAFormat);
@@ -1043,6 +1049,10 @@ const terrainMat = new THREE.ShaderMaterial({
     }`,
   fragmentShader: GLSL_COMMON + GLSL_CUT + /* glsl */`
     uniform sampler2D uColorTex;
+    uniform sampler2D uDColor;
+    uniform sampler2D uDHeight;
+    uniform vec4 uDTile;
+    uniform float uDZ2, uDOn;
     uniform sampler2D uPrefId;
     uniform sampler2D uPrefCol;
     uniform float uPrefFade;
@@ -1057,6 +1067,18 @@ const terrainMat = new THREE.ShaderMaterial({
       if (cutAway(vLL)) discard;
       vec3 col = texture2D(uColorTex, vUV).rgb;
       float h = texture2D(uHeight, vUV).r;
+      // 近づいたときは、細かい地形（見ている場所のまわりだけ）を重ねる。境目はなめらかにつなぐ
+      {
+        float x = (vLL.x + 180.0) / 360.0 * uDZ2;
+        float la = radians(clamp(vLL.y, -85.0, 85.0));
+        float y = (1.0 - log(max(tan(la) + 1.0 / cos(la), 1e-6)) / PI) * 0.5 * uDZ2;
+        vec2 d = vec2((x - uDTile.x) / uDTile.z, (y - uDTile.y) / uDTile.w);
+        vec2 e = min(d, 1.0 - d);
+        float wgt = uDOn * smoothstep(0.0, 0.1, min(e.x, e.y));
+        vec2 dc = clamp(d, 0.0, 1.0);
+        col = mix(col, texture2D(uDColor, dc).rgb, wgt);
+        h = mix(h, texture2D(uDHeight, dc).r, wgt);
+      }
       // 海岸線（標高0mを横切る画素だけを光らせる）
       float fw = max(fwidth(h), 1e-3);
       float coast = 1.0 - smoothstep(0.3, 1.1, abs(h) / fw);
@@ -1192,7 +1214,7 @@ async function loadTerrain(onProgress) {
 
 // 標高の色と陰影をあらかじめ焼き込む（北西から光を当てた陰影起伏）
 function bakeTerrainColor() { return bakeColorTexture(HM.W, HM.H, HM.elev, TILE.z, TILE.y0); }
-function bakeColorTexture(W, H, elev, z, y0) {
+function bakeColorTexture(W, H, elev, z, y0, relief = 1) {
   const out = new Uint8Array(W * H * 4);
   const n = 2 ** z;
   const alt = 40 * DEG, az = 315 * DEG;
@@ -1222,7 +1244,7 @@ function bakeColorTexture(W, H, elev, z, y0) {
     for (let x = 0; x < W; x++) {
       const i = yr + x;
       const h = elev[i];
-      const k = h > 0 ? 6.5 : 14;
+      const k = (h > 0 ? 6.5 : 14) * relief;
       const dzdx = (elev[yr + Math.min(x + 1, W - 1)] - elev[yr + Math.max(x - 1, 0)]) / (2 * mpp) * k;
       const dzdy = (elev[yu + x] - elev[yd + x]) / (2 * mpp) * k;
       const inv = 1 / Math.sqrt(dzdx * dzdx + dzdy * dzdy + 1);
@@ -3901,6 +3923,66 @@ function setMobileTab(tab, silent) {
   document.querySelectorAll('#mobile-tabs [data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === (tab === 'settings' ? 'map' : tab)));
 }
 
+// ====== 近づいたときの細かい地形 ======
+const Detail = {
+  n: IS_MOBILE ? 4 : 6, key: '', want: '', since: 0, loading: false, on: 0, cache: new Map(),
+  tileOf(lat, lon, z) {
+    const n = 2 ** z, la = clamp(lat, -85, 85) * DEG;
+    return [Math.floor((lon + 180) / 360 * n), Math.floor((1 - Math.log(Math.tan(la) + 1 / Math.cos(la)) / Math.PI) / 2 * n)];
+  },
+  update(dt) {
+    const dist = camera.position.distanceTo(controls.target);
+    const z = Globe.active || Section.active ? 0 : dist < 520 ? 9 : dist < 1600 ? 8 : 0;
+    let want = '';
+    if (z) {
+      const ll = localToLL(controls.target);
+      if (inRegion(ll.lat, ll.lon)) {
+        const [tx, ty] = this.tileOf(ll.lat, ll.lon, z), h = Math.floor(this.n / 2);
+        want = `${z}/${tx - h + 1}/${ty - h + 1}`;
+      }
+    }
+    // カメラが止まってから読み込む
+    if (want !== this.want) { this.want = want; this.since = performance.now(); }
+    if (want && want !== this.key && !this.loading && performance.now() - this.since > 450) this.load(want);
+    // 読み込みのあいだも前の細かい地形は出したままにする（範囲の外には効かないので問題ない）
+    const target = want && this.key ? 1 : 0;
+    this.on = lerp(this.on, target, Math.min(1, dt * (target ? 3 : 6)));
+    if (Math.abs(this.on - target) < 0.004) this.on = target;
+    terrainU.uDOn.value = this.on;
+  },
+  async load(key) {
+    this.loading = true;
+    try {
+      let t = this.cache.get(key);
+      if (!t) {
+        const [z, x0, y0] = key.split('/').map(Number), n = this.n;
+        const { W, H, elev } = await loadElevationMosaic(z, x0, x0 + n - 1, y0, y0 + n - 1);
+        const half = new Uint16Array(W * H);
+        for (let i = 0; i < W * H; i++) half[i] = THREE.DataUtils.toHalfFloat(clamp(elev[i], -11000, 9000));
+        const ht = new THREE.DataTexture(half, W, H, THREE.RedFormat, THREE.HalfFloatType);
+        ht.minFilter = ht.magFilter = THREE.LinearFilter; ht.generateMipmaps = false; ht.needsUpdate = true;
+        const ct = bakeColorTexture(W, H, elev, z, y0, z >= 9 ? 0.42 : 0.55);
+        t = { z, x0, y0, n, ht, ct };
+        // 直近の数か所だけ覚えておく
+        this.cache.set(key, t);
+        if (this.cache.size > 4) {
+          const old = [...this.cache.keys()].find((k) => k !== this.key && k !== key);
+          if (old) { const v = this.cache.get(old); v.ht.dispose(); v.ct.dispose(); this.cache.delete(old); }
+        }
+      }
+      if (this.want !== key && this.key) return;
+      terrainU.uDColor.value = t.ct; terrainU.uDHeight.value = t.ht;
+      terrainU.uDTile.value.set(t.x0, t.y0, t.n, t.n);
+      terrainU.uDZ2.value = 2 ** t.z;
+      this.key = key;
+    } catch (e) {
+      this.key = '';
+    } finally {
+      this.loading = false;
+    }
+  },
+};
+
 // ====== 共有リンク ======
 // 例：#eq=20260926210756 / #arc=noto2024 / #sec=39.3,137,39.3,145.3,50 / #globe=1 / #r=30d / #cam=35.4,137.6,-140,4400,54,10
 const Share = {
@@ -4039,6 +4121,7 @@ function frame(now) {
     t.x = clamp(t.x, -2600, 2600); t.z = clamp(t.z, -2600, 2600); t.y = clamp(t.y, -MAX_DEPTH * 5, 400);
   }
   Globe.update(dt);
+  Detail.update(dt);
   sky.position.copy(camera.position);
   const dist = camera.position.distanceTo(controls.target);
   camera.near = clamp(dist * 0.004, 0.5, 60);
@@ -4047,7 +4130,8 @@ function frame(now) {
   viewOff.y = lerp(viewOff.y, viewOff.ty, Math.min(1, dt * 5));
   camera.setViewOffset(innerWidth, innerHeight, -viewOff.x, -viewOff.y, innerWidth, innerHeight);
   camera.updateProjectionMatrix();
-  sharedZoom.value = clamp(Math.pow(5000 / dist, 0.55), 0.55, 4.2);
+  // 近づくほど点を大きくするが、地形を覆わないよう上限を低めにする
+  sharedZoom.value = clamp(Math.pow(5000 / dist, 0.45), 0.55, 2.8);
   sharedLift.value = clamp(dist * 0.0012, 0.3, 8);
   stationU.uRadius.value = clamp(dist * 0.0032, 0.9, 13);
   stationU.uHScale.value = clamp(dist * 0.004, 1.2, 18);
