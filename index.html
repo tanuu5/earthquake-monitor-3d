@@ -453,6 +453,7 @@ body.picking #stage canvas { cursor: crosshair !important; }
   <div class="top-right panel" style="position:static">
     <div id="clock" class="clock num">--</div>
     <div id="conn" class="conn"><span class="dot"></span><span class="txt">接続中…</span></div>
+    <button id="btn-share" class="icon-btn" title="いまの表示をリンクで共有" aria-label="共有"><svg class="ic" viewBox="0 0 24 24"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/></svg></button>
     <button id="btn-settings" class="icon-btn" title="設定" aria-label="設定"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/></svg></button>
     <button id="btn-help" class="icon-btn" title="使い方" aria-label="使い方"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.2-2.4 3.7"/><path d="M12 17.2v.1"/></svg></button>
   </div>
@@ -636,6 +637,7 @@ body.picking #stage canvas { cursor: crosshair !important; }
         <li>右下の「地球」（<kbd>G</kbd>）、または大きくズームアウトすると地球儀になり、世界の地震とプレート境界を表示します。地球儀で日本に近づくと、元の詳しい表示に戻ります。</li>
         <li>左の一覧の「過去の大地震」タブから、東日本大震災や能登半島地震などを選ぶと、本震の前後の地震を早送りで再生します。本震の時刻で一時停止して、揺れの広がりも見せます。</li>
         <li>右下の「断面」を押して地図上の2点をクリックすると、その線に沿って地下を切った<b>断面</b>を表示します。断面の近く（初期値は±50km）の震源だけが残り、画面下に距離と深さの断面図が出ます。「断面の例」から東北や伊豆・小笠原などを選ぶこともできます。</li>
+        <li>右上の共有ボタンで、いま見ている表示（選んだ地震・断面・過去の大地震・地球儀・視点）をリンクにしてコピーできます。そのリンクを開くと同じ表示から始まります。</li>
         <li>キーボード：<kbd>Space</kbd> 再生／停止、<kbd>1</kbd>〜<kbd>4</kbd> 視点、<kbd>S</kbd> 断面、<kbd>G</kbd> 地球儀、<kbd>R</kbd> 視点リセット、<kbd>Esc</kbd> 閉じる</li>
       </ul>
       <h3>データ</h3>
@@ -2226,7 +2228,7 @@ async function selectEvent(ev, { fly: doFly = true, replay = true } = {}) {
   renderDetail(ev);
   setPrefTint(ev?.prefs);
   prefFadeTarget = ev && S.showPrefTint ? 1 : 0;
-  if (!ev) { stopReplay(); setStations(null, []); return; }
+  if (!ev) { stopReplay(); setStations(null, []); clearHash(); return; }
   if (IS_MOBILE) setMobileTab('map', true);
   if (doFly) flyToEvent(ev);
   setStations(ev, []);
@@ -2660,6 +2662,7 @@ const Section = {
   clear() {
     this.active = false; this.fadeTarget = 0; this.a = this.b = null;
     cutU.uCut.value = 0;
+    clearHash();
     document.body.classList.remove('sec-big');
     $('sp-expand').classList.remove('on');
     document.body.classList.remove('sec-open');
@@ -3038,6 +3041,7 @@ const Archive = {
   close() {
     if (!this.active) return;
     this.active = null; this.events = []; this.keyEvents = []; this.holding = false;
+    clearHash();
     for (const o of archLayer.objs) o.visible = false;
     $('timeline').classList.remove('arch');
     stopReplay();
@@ -3291,6 +3295,7 @@ const Globe = {
   exit(ll) {
     if (!this.active) return;
     this.active = false;
+    clearHash();
     this.cool = performance.now() + 2600;
     $('btn-globe').classList.remove('on');
     controls.enablePan = true; controls.zoomToCursor = true;
@@ -3688,6 +3693,8 @@ function handleEEW(m, demo = false) {
   }
   const q = m.earthquake || {}, h = q.hypocenter || {};
   const origin = parseJST(q.originTime) || Date.now();
+  // 発生から3分以上たった速報（遅れて届いたもの・試験配信の再送）は表示しない
+  if (!demo && Date.now() - origin > 180e3) return;
   const hasHypo = h.latitude > -200 && h.longitude > -200;
   let maxTo = 0, maxFrom = 0;
   for (const a of m.areas || []) { maxFrom = Math.max(maxFrom, shindoP2P(a.scaleFrom)); maxTo = Math.max(maxTo, a.scaleTo === 99 ? shindoP2P(a.scaleFrom) : shindoP2P(a.scaleTo)); }
@@ -3834,6 +3841,7 @@ function bindSettings() {
   $('btn-rotate').onclick = () => { S.autoRotate = !S.autoRotate; saveSettings(); applyVisibility(); };
   $('btn-layers').onclick = () => { $('layers-panel').classList.toggle('hidden'); $('btn-layers').classList.toggle('on', !$('layers-panel').classList.contains('hidden')); };
   $('btn-settings').onclick = () => openModal('settings-modal');
+  $('btn-share').onclick = () => Share.copy();
   $('btn-help').onclick = () => openModal('help-modal');
   document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m || e.target.closest('[data-close]')) closeModals(); }));
   $('test-chime').onclick = () => Sound.chime();
@@ -3892,6 +3900,96 @@ function setMobileTab(tab, silent) {
   document.body.classList.toggle('m-list', tab === 'list');
   document.querySelectorAll('#mobile-tabs [data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === (tab === 'settings' ? 'map' : tab)));
 }
+
+// ====== 共有リンク ======
+// 例：#eq=20260926210756 / #arc=noto2024 / #sec=39.3,137,39.3,145.3,50 / #globe=1 / #r=30d / #cam=35.4,137.6,-140,4400,54,10
+const Share = {
+  build() {
+    const p = new URLSearchParams();
+    if (S.range !== DEFAULTS.range) p.set('r', S.range);
+    if (Globe.active) {
+      p.set('globe', '1');
+      const ll = localToLL(camera.position);
+      p.set('gcam', [ll.lat.toFixed(2), ll.lon.toFixed(2), Math.round(camera.position.distanceTo(EARTH_C))].join(','));
+      if (Globe.sel?.id) p.set('geq', Globe.sel.id);
+      return '#' + p.toString();
+    }
+    if (Archive.active) p.set('arc', Archive.active.key);
+    else if (State.selected?.eid) p.set('eq', State.selected.eid);
+    if (Section.active) p.set('sec', [Section.a.lat, Section.a.lon, Section.b.lat, Section.b.lon].map((v) => v.toFixed(2)).concat(S.secWidth).join(','));
+    if (!Archive.active && !State.selected) {
+      const t = localToLL(controls.target), sph = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+      p.set('cam', [t.lat.toFixed(2), t.lon.toFixed(2), Math.round(t.alt), Math.round(sph.radius), Math.round(sph.phi / DEG), Math.round(sph.theta / DEG)].join(','));
+    }
+    return '#' + p.toString();
+  },
+  async copy() {
+    const url = location.origin + location.pathname + location.search + this.build();
+    history.replaceState(null, '', url);
+    try {
+      if (navigator.share && (IS_MOBILE || matchMedia('(pointer: coarse)').matches)) { await navigator.share({ title: document.title, url }); return; }
+      await navigator.clipboard.writeText(url);
+      toast('この表示のリンクをコピーしました', 'ok');
+    } catch (e) {
+      if (e?.name !== 'AbortError') toast('リンクをコピーできませんでした。アドレス欄のURLを使ってください', 'warn');
+    }
+  },
+  // リンクで開いたとき、その表示を再現する。何かを再現したら true
+  apply(hash, fresh = true) {
+    const p = new URLSearchParams(String(hash || '').replace(/^#/, ''));
+    if (![...p.keys()].length) return false;
+    const nums = (k) => (p.get(k) || '').split(',').map(Number);
+    // ページを開いたままリンクだけ変わったときは、リンクにない表示を閉じる
+    if (!fresh) {
+      this.applying = true;
+      if (!p.get('arc') && Archive.active) { Archive.saved = null; Archive.close(); }
+      if (!p.get('sec') && Section.active) { Section.saved = null; Section.clear(); }
+      if (p.get('globe') !== '1' && Globe.active) Globe.exit();
+      if (!p.get('eq') && State.selected) selectEvent(null);
+      this.applying = false;
+    }
+    if (p.get('r') && RANGES.some((r) => r[0] === p.get('r')) && p.get('r') !== S.range) Timeline.setRange(p.get('r'));
+    let done = false;
+    if (p.get('globe') === '1') {
+      Globe.enter(false);
+      const g = nums('gcam');
+      if (g.length === 3 && g.every(Number.isFinite)) {
+        const dir = unitLL(g[0], g[1]).applyMatrix3(ENU), sph = new THREE.Spherical().setFromVector3(dir);
+        setTimeout(() => flyTo({ target: EARTH_C, dist: clamp(g[2], R_EARTH + 1000, 48000) / distScale(), polar: sph.phi / DEG, az: sph.theta / DEG, duration: 1.2 }), 50);
+      }
+      const geq = p.get('geq');
+      if (geq) {
+        const tryGlobal = (n) => { const e = globalLayer.items.find((x) => x.id === geq); if (e) Globe.select(e); else if (n > 0) setTimeout(() => tryGlobal(n - 1), 700); };
+        tryGlobal(20);
+      }
+      this.keepHash(hash);
+      return true;
+    }
+    if (p.get('arc')) { Archive.open(p.get('arc')); setListTab('archive'); done = true; }
+    else if (p.get('eq')) {
+      const ev = Store.events.get('jma:' + p.get('eq'));
+      if (ev) { selectEvent(ev); done = true; }
+      else toast('リンクの地震は見つかりませんでした（表示できるのは約1か月前までの地震です）', 'warn', 7000);
+    }
+    const sc = nums('sec');
+    if (sc.length >= 4 && sc.slice(0, 4).every(Number.isFinite)) {
+      if (Number.isFinite(sc[4])) { S.secWidth = clamp(Math.round(sc[4] / 10) * 10, 10, 200); $('sp-width').value = S.secWidth; $('sp-wv').textContent = `±${S.secWidth}km`; }
+      Section.set({ lat: sc[0], lon: sc[1] }, { lat: sc[2], lon: sc[3] }, '');
+      done = true;
+    }
+    const c = nums('cam');
+    if (!done && c.length === 6 && c.every(Number.isFinite)) {
+      flyTo({ target: toLocal(clamp(c[0], REGION.latMin, REGION.latMax), clamp(c[1], REGION.lonMin, REGION.lonMax), clamp(c[2], -MAX_DEPTH * 5, 400)), dist: clamp(c[3], 60, 12000) / distScale(), polar: c[4], az: c[5], duration: 2.4 });
+      done = true;
+    }
+    this.keepHash(hash);
+    return done;
+  },
+  keepHash(hash) { if (hash && location.hash !== hash) history.replaceState(null, '', location.pathname + location.search + hash); },
+};
+addEventListener('hashchange', () => Share.apply(location.hash, false));
+// 共有リンクで開いた表示を閉じたら、アドレス欄のリンクも消す
+function clearHash() { if (location.hash && !Share.applying) history.replaceState(null, '', location.pathname + location.search); }
 
 // パネルに隠れていない部分の中央に3D表示の中心が来るよう、投影をずらす
 const viewOff = { x: 0, y: 0, tx: 0, ty: 0 };
@@ -4069,7 +4167,7 @@ async function main() {
   Loading.hide();
   const t0 = performance.now();
   (function reveal() { const k = clamp((performance.now() - t0) / 1600, 0, 1); terrainU.uReveal.value = k * k; if (k < 1) requestAnimationFrame(reveal); })();
-  setTimeout(() => setView('oblique', 3.2), 250);
+  setTimeout(() => { if (!location.hash || !Share.apply(location.hash)) setView('oblique', 3.2); }, 250);
 
   startRealtime();
   loadPrefectures().then(() => { if (S.me === 'geo') renderList(); }).catch(() => toast('県境データを読み込めませんでした', 'warn'));
