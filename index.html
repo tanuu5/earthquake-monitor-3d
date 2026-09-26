@@ -500,6 +500,7 @@ body.picking #stage canvas { cursor: crosshair !important; }
   <button data-view="south" class="txt-btn" title="南から断面を見る (3)">南から</button>
   <button data-view="east" class="txt-btn" title="東から断面を見る (4)">東から</button>
   <span class="sep txt-btn"></span>
+  <button id="btn-globe" title="地球全体を見る（G）：大きくズームアウトしても切り替わります" aria-label="地球儀"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.9 5.2 3.9 8.5s-1.3 6.1-3.9 8.5c-2.6-2.4-3.9-5.2-3.9-8.5s1.3-6.1 3.9-8.5z"/></svg><span class="txt-btn">地球</span></button>
   <button id="btn-section" title="断面を見る：地図上の2点を結ぶ線で地下を切ります (S)" aria-label="断面"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7.5l9-4 9 4"/><path d="M4 9v10.5h16V9"/><path d="M7 13.5l3 1.2 3 2.2 4 1" stroke-dasharray="1.6 1.8"/></svg><span class="txt-btn">断面</span></button>
   <button id="btn-rotate" title="自動回転" aria-label="自動回転"><svg class="ic" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5v4.4h-4.4"/></svg></button>
   <button id="btn-layers" title="表示の設定" aria-label="表示の設定"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5l9 4.8-9 4.8-9-4.8z"/><path d="M3 12.6l9 4.8 9-4.8"/><path d="M3 16.6l9 4.8 9-4.8" opacity=".55"/></svg></button>
@@ -632,9 +633,10 @@ body.picking #stage canvas { cursor: crosshair !important; }
         <li>ドラッグで回転、右ドラッグ（2本指）で移動、ホイール（ピンチ）でズーム。</li>
         <li>地震の点や一覧をクリックすると、震源へ移動して<b>揺れの広がり（P波・S波）と各地の震度</b>を再生します。</li>
         <li>下のタイムラインで表示期間を切り替え、▶で地震活動を早送り再生できます。バーをドラッグすると好きな時点を表示できます。</li>
+        <li>右下の「地球」（<kbd>G</kbd>）、または大きくズームアウトすると地球儀になり、世界の地震とプレート境界を表示します。地球儀で日本に近づくと、元の詳しい表示に戻ります。</li>
         <li>左の一覧の「過去の大地震」タブから、東日本大震災や能登半島地震などを選ぶと、本震の前後の地震を早送りで再生します。本震の時刻で一時停止して、揺れの広がりも見せます。</li>
         <li>右下の「断面」を押して地図上の2点をクリックすると、その線に沿って地下を切った<b>断面</b>を表示します。断面の近く（初期値は±50km）の震源だけが残り、画面下に距離と深さの断面図が出ます。「断面の例」から東北や伊豆・小笠原などを選ぶこともできます。</li>
-        <li>キーボード：<kbd>Space</kbd> 再生／停止、<kbd>1</kbd>〜<kbd>4</kbd> 視点、<kbd>S</kbd> 断面、<kbd>R</kbd> 視点リセット、<kbd>Esc</kbd> 閉じる</li>
+        <li>キーボード：<kbd>Space</kbd> 再生／停止、<kbd>1</kbd>〜<kbd>4</kbd> 視点、<kbd>S</kbd> 断面、<kbd>G</kbd> 地球儀、<kbd>R</kbd> 視点リセット、<kbd>Esc</kbd> 閉じる</li>
       </ul>
       <h3>データ</h3>
       <ul>
@@ -643,6 +645,7 @@ body.picking #stage canvas { cursor: crosshair !important; }
         <li>過去の震源：<a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener">USGS</a> Earthquake Catalog</li>
         <li>地形・海底地形：Mapzen Terrain Tiles（AWS Open Data。SRTM、GMTED2010、ETOPO1 ほか）</li>
         <li>県境：<a href="https://github.com/dataofjapan/land" target="_blank" rel="noopener">dataofjapan/land</a>（出典：地球地図日本）</li>
+        <li>世界のプレート境界（地球儀）：Peter Bird (2003) PB2002（<a href="https://github.com/fraxen/tectonicplates" target="_blank" rel="noopener">Hugo Ahlenius / Nordpil による変換</a>、ODC-By 1.0）</li>
         <li>描画：<a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></li>
       </ul>
       <h3>ご注意</h3>
@@ -652,7 +655,7 @@ body.picking #stage canvas { cursor: crosshair !important; }
   </div>
 </div>
 
-<footer id="credits">データ：気象庁・P2P地震情報・USGS ／ 地形：Mapzen Terrain Tiles（AWS Open Data） ／ 県境：dataofjapan/land（地球地図日本） ／ Built with Claude (Opus 5.5)</footer>
+<footer id="credits">データ：気象庁・P2P地震情報・USGS ／ 地形：Mapzen Terrain Tiles（AWS Open Data） ／ 県境：dataofjapan/land（地球地図日本） ／ プレート境界：PB2002（Bird 2003） ／ Built with Claude (Opus 5.5)</footer>
 
 <script type="importmap">
 { "imports": {
@@ -900,7 +903,7 @@ controls.panSpeed = 0.9;
 controls.zoomSpeed = 1.1;
 controls.screenSpacePanning = false;
 controls.minDistance = 60;
-controls.maxDistance = 16000;
+controls.maxDistance = 12500;
 controls.maxPolarAngle = Math.PI * 0.56;
 controls.zoomToCursor = true;
 controls.autoRotateSpeed = 0.35;
@@ -962,19 +965,22 @@ const GLSL_CUT = /* glsl */`
 `;
 
 // ====== 背景（宇宙） ======
+const skyFlat = { value: 0 };
 const sky = new THREE.Group();
 scene.add(sky);
 {
   const g = new THREE.SphereGeometry(90000, 32, 16);
   const m = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, depthTest: false,
+    uniforms: { uFlat: skyFlat },
     vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: `varying vec3 vDir;
+      uniform float uFlat;
       void main(){
         float h = vDir.y;
         vec3 top = vec3(0.004, 0.008, 0.02), hor = vec3(0.016, 0.03, 0.065), bot = vec3(0.002, 0.003, 0.008);
         vec3 c = h > 0.0 ? mix(hor, top, pow(clamp(h, 0.0, 1.0), 0.55)) : mix(hor, bot, pow(clamp(-h, 0.0, 1.0), 0.35));
-        gl_FragColor = vec4(c, 1.0);
+        gl_FragColor = vec4(mix(c, vec3(0.003, 0.006, 0.014), uFlat), 1.0);
       }`,
   });
   const mesh = new THREE.Mesh(g, m);
@@ -1136,25 +1142,26 @@ async function loadTileImage(url) {
   catch { return await createImageBitmap(blob); }
 }
 
-async function loadTerrain(onProgress) {
-  const nx = TILE.x1 - TILE.x0 + 1, ny = TILE.y1 - TILE.y0 + 1;
+// 標高タイルを並べて1枚の標高データにする
+async function loadElevationMosaic(z, x0, x1, y0, y1, onProgress) {
+  const nx = x1 - x0 + 1, ny = y1 - y0 + 1;
   const W = nx * 256, H = ny * 256;
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d', { willReadFrequently: true });
   const jobs = [];
-  for (let y = TILE.y0; y <= TILE.y1; y++) for (let x = TILE.x0; x <= TILE.x1; x++) jobs.push({ x, y });
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) jobs.push({ x, y });
   let done = 0, failed = 0;
   await Promise.all(jobs.map(async ({ x, y }) => {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const img = await loadTileImage(TILE_URL(TILE.z, x, y));
-        ctx.drawImage(img, (x - TILE.x0) * 256, (y - TILE.y0) * 256);
+        const img = await loadTileImage(TILE_URL(z, x, y));
+        ctx.drawImage(img, (x - x0) * 256, (y - y0) * 256);
         img.close?.();
         break;
       } catch (e) { if (attempt === 1) failed++; }
     }
-    onProgress(++done, jobs.length);
+    onProgress?.(++done, jobs.length);
   }));
   const px = ctx.getImageData(0, 0, W, H).data;
   const elev = new Float32Array(W * H);
@@ -1162,7 +1169,12 @@ async function loadTerrain(onProgress) {
     elev[i] = px[j + 3] < 250 ? -4000 : px[j] * 256 + px[j + 1] + px[j + 2] / 256 - 32768;
   }
   cv.width = cv.height = 1;
-  Object.assign(HM, { W, H, elev, ready: true, failed, total: jobs.length });
+  return { W, H, elev, failed, total: jobs.length };
+}
+
+async function loadTerrain(onProgress) {
+  const { W, H, elev, failed, total } = await loadElevationMosaic(TILE.z, TILE.x0, TILE.x1, TILE.y0, TILE.y1, onProgress);
+  Object.assign(HM, { W, H, elev, ready: true, failed, total });
 
   // 標高テクスチャ（半精度・線形補間）
   const half = new Uint16Array(W * H);
@@ -1177,10 +1189,10 @@ async function loadTerrain(onProgress) {
 }
 
 // 標高の色と陰影をあらかじめ焼き込む（北西から光を当てた陰影起伏）
-function bakeTerrainColor() {
-  const { W, H, elev } = HM;
+function bakeTerrainColor() { return bakeColorTexture(HM.W, HM.H, HM.elev, TILE.z, TILE.y0); }
+function bakeColorTexture(W, H, elev, z, y0) {
   const out = new Uint8Array(W * H * 4);
-  const n = 2 ** TILE.z;
+  const n = 2 ** z;
   const alt = 40 * DEG, az = 315 * DEG;
   const Lx = Math.sin(az) * Math.cos(alt), Ly = Math.cos(az) * Math.cos(alt), Lz = Math.sin(alt);
   const SEA = [[0, [0.10, 0.27, 0.36]], [120, [0.075, 0.215, 0.315]], [1000, [0.05, 0.16, 0.26]], [3000, [0.035, 0.115, 0.205]], [6000, [0.022, 0.07, 0.14]], [9500, [0.012, 0.035, 0.085]]];
@@ -1201,7 +1213,7 @@ function bakeTerrainColor() {
     lut[i * 3] = c[0]; lut[i * 3 + 1] = c[1]; lut[i * 3 + 2] = c[2];
   }
   for (let y = 0; y < H; y++) {
-    const my = (TILE.y0 + (y + 0.5) / 256) / n;
+    const my = (y0 + (y + 0.5) / 256) / n;
     const lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * my)));
     const mpp = 40075016.686 * Math.cos(lat) / (256 * n);
     const yu = Math.max(y - 1, 0) * W, yd = Math.min(y + 1, H - 1) * W, yr = y * W;
@@ -1306,8 +1318,9 @@ function buildWalls() {
 }
 
 // ====== 線（県境・海溝・枠・震源への縦線） ======
-function makeLineMaterial({ time = false, depthTest = true, bias = 0, section = false, cut = true } = {}) {
+function makeLineMaterial({ time = false, depthTest = true, bias = 0, section = false, cut = true, flat = false } = {}) {
   const defines = {};
+  if (flat) defines.FLAT = '';
   if (time) defines.USE_TIME = '';
   if (section) defines.USE_SECTION = '';
   if (cut) defines.USE_CUT = '';
@@ -1325,7 +1338,11 @@ function makeLineMaterial({ time = false, depthTest = true, bias = 0, section = 
       varying vec4 vColor;
       varying vec2 vLLl;
       void main() {
+        #ifdef FLAT
+        float alt = uLift;
+        #else
         float alt = aDepth < -0.5 ? altOf(elevAt(aLL)) + uLift : -aDepth * uDepthExag;
+        #endif
         vColor = aColor;
         vLLl = aLL;
         #ifdef USE_TIME
@@ -1351,6 +1368,8 @@ function makeLineMaterial({ time = false, depthTest = true, bias = 0, section = 
 }
 const sharedLift = { value: 2 };
 const timeU = { uT: { value: 0 }, uT0: { value: -1e12 }, uNow: { value: 0 }, uFlash: { value: 1 }, uClock: { value: 0 } };
+// 地球儀：裏側の震源を隠すためのカメラ位置
+const faceU = { uFaceCull: { value: 0 }, uCamLocal: { value: new THREE.Vector3() } };
 // 断面：大円の面（地球の中心を通る面）からの距離で、断面の近くの震源だけを残す
 const secU = {
   uSecOn: { value: 0 }, uSecW: { value: 50 }, uSecLen: { value: 0 },
@@ -1417,12 +1436,19 @@ function buildTrenchLines() {
 const POINT_VS = GLSL_COMMON + GLSL_SECTION + GLSL_CUT + /* glsl */`
   attribute vec2 aLL; attribute float aDepth; attribute vec3 aColor; attribute float aSize; attribute float aTime;
   uniform float uT, uT0, uNow, uFlash, uClock, uZoom, uPR, uSel, uHover, uRecentOn;
+  uniform float uFaceCull;
+  uniform vec3 uCamLocal;
   varying vec3 vColor; varying float vAlpha; varying float vFlash; varying float vRecent; varying float vSel; varying float vScale;
   void main() {
     vec4 mv = modelViewMatrix * vec4(toLocal(aLL, -aDepth * uDepthExag), 1.0);
     gl_Position = projectionMatrix * mv;
     float age = uT - aTime;
     float vis = step(uT0, aTime) * step(0.0, age) * (cutAway(aLL) ? 0.0 : 1.0);
+    // 地球儀のとき、地球の裏側にある震源は描かない
+    if (uFaceCull > 0.5) {
+      vec3 sp = toLocal(aLL, 0.0);
+      if (dot(uEnu * ecefUnit(aLL), normalize(uCamLocal - sp)) < -0.02) vis = 0.0;
+    }
     float flash = vis * exp(-max(age, 0.0) / max(uFlash, 1e-3));
     float recent = uRecentOn * vis * clamp(1.0 - (uNow - aTime) / 86400.0, 0.0, 1.0);
     float idx = float(gl_VertexID);
@@ -1481,7 +1507,7 @@ const POINT_FS = /* glsl */`
   }`;
 function makePointLayer(style) {
   const u = {
-    ...U, ...secU, ...cutU, uT: timeU.uT, uT0: timeU.uT0, uNow: timeU.uNow, uFlash: timeU.uFlash, uClock: timeU.uClock,
+    ...U, ...secU, ...cutU, ...faceU, uT: timeU.uT, uT0: timeU.uT0, uNow: timeU.uNow, uFlash: timeU.uFlash, uClock: timeU.uClock,
     uZoom: sharedZoom, uPR: { value: PR }, uSel: { value: -1 }, uHover: { value: -1 }, uRecentOn: { value: style === 'jma' ? 1 : 0 },
     uIntensity: { value: 1 }, uRing: { value: style === 'jma' ? 1 : 0 }, uReveal: terrainU.uReveal, uStyle: { value: style === 'jma' ? 1 : 0 },
   };
@@ -1736,10 +1762,12 @@ function refreshLabels() {
   updateLabelVisibility();
 }
 function updateLabelVisibility() {
-  for (const o of LABELS.city) o.userData.show = S.showLabels;
-  for (const o of LABELS.plate) o.userData.show = S.showLabels && S.showPlates;
-  for (const o of LABELS.trench) o.userData.show = S.showPlates;
-  for (const o of LABELS.depth) o.userData.show = S.showWalls;
+  const g = Globe.active;
+  for (const o of LABELS.city) o.userData.show = S.showLabels && !g;
+  for (const o of LABELS.plate) o.userData.show = S.showLabels && S.showPlates && !g;
+  for (const o of LABELS.trench) o.userData.show = S.showPlates && !g;
+  for (const o of LABELS.depth) o.userData.show = S.showWalls && !g;
+  if (Me.obj) Me.obj.visible = !g;
   syncLabelCut();
 }
 // 断面のカットアウェイで切り取った側のラベルは隠す
@@ -1785,7 +1813,7 @@ function setMarker(m, ev) {
   const col = SHINDO[ev.maxi]?.color || '#fff';
   m.element.style.setProperty('--c', ev.maxi ? col : '#dfe8f5');
   m.element.querySelector('.focus-card').innerHTML = `${badgeHTML(ev.maxi)}<div><div class="fc-name">${esc(ev.name)}</div><div class="fc-meta num">${fmtShort(ev.time)} · ${fmtMag(ev.mag)} · ${fmtDepth(ev.depth)}</div></div>`;
-  toLocal(ev.lat, ev.lon, surfAlt(ev.lat, ev.lon) + 1, m.position);
+  toLocal(ev.lat, ev.lon, (inRegion(ev.lat, ev.lon) ? surfAlt(ev.lat, ev.lon) : 0) + 1, m.position);
 }
 
 // ====== データ置き場 ======
@@ -2097,16 +2125,18 @@ function syncSelectionIndex() {
   jmaLayer.u.uSel.value = i;
 }
 function applyVisibility() {
-  const arch = !!Archive.active;
+  const arch = !!Archive.active, globe = Globe.active;
   for (const o of jmaLayer.objs) o.visible = S.showJma && !arch;
-  dropLines.visible = S.showJma && !arch;
+  dropLines.visible = S.showJma && !arch && !globe;
   for (const o of usgsLayer.objs) o.visible = S.showUsgs && !arch;
   for (const o of archLayer.objs) o.visible = S.showUsgs && arch;
+  for (const o of globalLayer.objs) o.visible = S.showUsgs && globe && Globe.quakes === 'done';
+  plateLines.visible = S.showPlates && globe && Globe.plates === 'done';
   stationMesh.visible = S.showStations && StationState.list.length > 0;
   borderLines.visible = S.showBorders;
   trenchLines.visible = S.showPlates;
-  walls.visible = frameLines.visible = S.showWalls;
-  terrainU.uGrid.value = S.showWalls ? 1 : 0.4;
+  walls.visible = frameLines.visible = S.showWalls && !globe;
+  terrainU.uGrid.value = globe ? 0.25 : S.showWalls ? 1 : 0.4;
   updateLabelVisibility();
   controls.autoRotate = S.autoRotate;
   $('btn-rotate').classList.toggle('on', S.autoRotate);
@@ -2147,6 +2177,11 @@ function flyTo({ target, dist, polar, az, duration = 1.6 }) {
   dTheta = ((dTheta + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
   fly = { t0: performance.now(), dur: duration * 1000, fromT: controls.target.clone(), toT: target.clone(), from: sph.clone(), dTheta, to: end };
 }
+// 地球儀のとき、その地点がカメラから見えている側にあるか
+function facingCamera(lat, lon) {
+  const n = unitLL(lat, lon).applyMatrix3(ENU);
+  return n.dot(camera.position.clone().sub(toLocal(lat, lon, 0)).normalize()) > -0.02;
+}
 // 保存しておいたカメラの位置へ戻る
 function flyToState(target, position, duration = 1.4) {
   const sph = new THREE.Spherical().setFromVector3(position.clone().sub(target));
@@ -2181,6 +2216,7 @@ function flyToEvent(ev) {
 // ====== 選択・揺れの再生 ======
 async function selectEvent(ev, { fly: doFly = true, replay = true } = {}) {
   if (ev && Archive.active) Archive.close();
+  if (ev && Globe.active) Globe.exit();
   State.selected = ev;
   syncSelectionIndex();
   setMarker(focusMarker, ev);
@@ -2563,6 +2599,7 @@ const Section = {
     }
   },
   startPick() {
+    if (Globe.active) Globe.exit();
     this.picking = true; this.a = this.b = null;
     document.body.classList.add('picking');
     $('btn-section').classList.add('on');
@@ -2964,6 +3001,7 @@ const Archive = {
   async open(key) {
     const a = ARCHIVE.find((x) => x.key === key);
     if (!a) return;
+    if (Globe.active) Globe.exit();
     if (State.eew) { toast('緊急地震速報の表示中は開けません', 'warn'); return; }
     if (!this.active) this.saved = { t: controls.target.clone(), p: camera.position.clone() };
     selectEvent(null);
@@ -3118,6 +3156,257 @@ function drawArchiveChart(a, events) {
   g.textAlign = 'right'; g.fillText(`${nd}日`, w - 2, ch + 1);
 }
 
+// ====== 地球儀 ======
+const GLOBE_TILE = IS_MOBILE ? { z: 2, n: 4 } : { z: 3, n: 8 };
+const PB2002_URL = 'https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json';
+const USGS_FEED_MONTH = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.csv';
+const EARTH_C = new THREE.Vector3(0, -R_EARTH, 0);
+const POLE_DIR = new THREE.Vector3(0, 0, 1).applyMatrix3(ENU).normalize();   // 北極の向き（ローカル座標）
+const Y_UP = new THREE.Vector3(0, 1, 0);
+const GLOBE_ENTER = 11000, GLOBE_EXIT = 4200;                                  // 地球儀に切り替える距離・日本に戻る高さ（km）
+
+const globeU = {
+  ...U, uWaveHypo: terrainU.uWaveHypo, uWaveRad: terrainU.uWaveRad,
+  uGlobeTex: { value: null }, uHasTex: { value: 0 }, uFade: { value: 0 },
+  uRegion: { value: new THREE.Vector4(REGION.lonMin, REGION.lonMax, REGION.latMin, REGION.latMax) },
+};
+const globeMat = new THREE.ShaderMaterial({
+  uniforms: globeU, transparent: true, depthWrite: true,
+  vertexShader: GLSL_COMMON + /* glsl */`
+    attribute vec2 aLL;
+    varying vec2 vLL; varying vec3 vNrm; varying vec3 vView;
+    void main() {
+      vLL = aLL;
+      vec4 mv = modelViewMatrix * vec4(toLocal(aLL, 0.0), 1.0);
+      vNrm = normalize(normalMatrix * (uEnu * ecefUnit(aLL)));
+      vView = normalize(-mv.xyz);
+      gl_Position = projectionMatrix * mv;
+    }`,
+  fragmentShader: GLSL_COMMON + /* glsl */`
+    uniform sampler2D uGlobeTex;
+    uniform float uHasTex, uFade;
+    uniform vec4 uRegion;
+    uniform vec4 uWaveHypo[4];
+    uniform vec4 uWaveRad[4];
+    varying vec2 vLL; varying vec3 vNrm; varying vec3 vView;
+    void main() {
+      // 日本付近は詳しい地形のほうを見せる
+      if (vLL.x > uRegion.x && vLL.x < uRegion.y && vLL.y > uRegion.z && vLL.y < uRegion.w) discard;
+      float la = radians(clamp(vLL.y, -85.0, 85.0));
+      vec2 uv = vec2((vLL.x + 180.0) / 360.0, (1.0 - log(max(tan(la) + 1.0 / cos(la), 1e-6)) / PI) * 0.5);
+      vec3 col = uHasTex > 0.5 ? texture2D(uGlobeTex, uv).rgb : vec3(0.02, 0.06, 0.12);
+      col = mix(col, vec3(0.50, 0.56, 0.62), smoothstep(84.0, 86.5, abs(vLL.y)));
+      // 緯線・経線（15度ごと）
+      vec2 g = vLL / 15.0;
+      vec2 gd = abs(fract(g - 0.5) - 0.5) / max(fwidth(g), vec2(1e-5));
+      col = mix(col, vec3(0.45, 0.65, 1.0), (1.0 - smoothstep(0.5, 1.5, min(gd.x, gd.y))) * 0.06);
+      // ふちを暗くして、大気の色を少し足す
+      float ndv = clamp(dot(normalize(vNrm), normalize(vView)), 0.0, 1.0);
+      col *= 0.5 + 0.5 * ndv;
+      float rim = 1.0 - ndv;
+      col += vec3(0.10, 0.25, 0.55) * rim * rim * rim * 0.55;
+      // P波・S波（地表に届いた位置）
+      vec3 sp = ecefUnit(vLL) * uR;
+      for (int i = 0; i < 4; i++) {
+        vec4 hy = uWaveHypo[i];
+        if (hy.w < 0.5) continue;
+        vec4 wr = uWaveRad[i];
+        float d = distance(sp, hy.xyz);
+        float w = max(max(fwidth(d), 0.05) * 1.4, 1.2);
+        float qp = (d - wr.x) / w, qs = (d - wr.y) / w;
+        float ringP = wr.x > 0.0 ? exp(-qp * qp) : 0.0;
+        float ringS = wr.y > 0.0 ? exp(-qs * qs) : 0.0;
+        float inS = wr.y > d ? exp(-(wr.y - d) / max(wr.y * 0.12, 3.0)) : 0.0;
+        col += (vec3(0.20, 0.55, 1.0) * ringP * 1.3 + vec3(1.0, 0.36, 0.10) * (ringS * 1.7 + inS * 0.14)) * wr.z;
+      }
+      gl_FragColor = vec4(col, uFade);
+    }`,
+});
+const globeMesh = new THREE.Mesh(new THREE.BufferGeometry(), globeMat);
+globeMesh.frustumCulled = false;
+globeMesh.renderOrder = 0;
+globeMesh.visible = false;
+scene.add(globeMesh);
+const atmoMesh = new THREE.Mesh(new THREE.SphereGeometry(R_EARTH * 1.028, 96, 48), new THREE.ShaderMaterial({
+  uniforms: { uFade: globeU.uFade },
+  side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  vertexShader: `varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform float uFade; varying vec3 vN;
+    void main(){ float i = clamp(0.62 - dot(normalize(vN), vec3(0.0, 0.0, 1.0)), 0.0, 1.0); i = i * i * i; gl_FragColor = vec4(vec3(0.25, 0.55, 1.0) * i * 1.2 * uFade, 1.0); }`,
+}));
+atmoMesh.position.copy(EARTH_C);
+atmoMesh.frustumCulled = false;
+atmoMesh.renderOrder = -1;
+atmoMesh.visible = false;
+scene.add(atmoMesh);
+const plateLines = new THREE.LineSegments(new THREE.BufferGeometry(), makeLineMaterial({ flat: true, bias: 3e-6, cut: false }));
+plateLines.frustumCulled = false;
+plateLines.renderOrder = 3;
+plateLines.visible = false;
+scene.add(plateLines);
+const globalLayer = makePointLayer('usgs');
+for (const o of globalLayer.objs) o.visible = false;
+const globalSize = (e) => usgsSize(e) * 1.25;
+
+const Globe = {
+  active: false, fade: 0, blend: 0, cool: 0, tex: 'none', quakes: 'none', plates: 'none',
+  init() {
+    this.cool = performance.now() + 7000;   // 起動時の演出中は自動で切り替えない
+    // 1度ごとの緯度・経度の格子で球を作る
+    const cols = 361, rows = 181, ll = new Float32Array(cols * rows * 2), idx = [];
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) { const k = j * cols + i; ll[k * 2] = -180 + i; ll[k * 2 + 1] = 90 - j; }
+    for (let j = 0; j < rows - 1; j++) for (let i = 0; i < cols - 1; i++) { const a = j * cols + i, b = a + 1, c = a + cols, d = c + 1; idx.push(a, c, b, b, c, d); }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(cols * rows * 3), 3));
+    g.setAttribute('aLL', new THREE.BufferAttribute(ll, 2));
+    g.setIndex(idx);
+    globeMesh.geometry = g;
+    $('btn-globe').onclick = () => (this.active ? this.exit() : this.enter(false));
+  },
+  // 地球の自転軸を回転の軸にする（地球儀のあいだは北が上）
+  setAxis(t) {
+    camera.up.copy(Y_UP).lerp(POLE_DIR, t).normalize();
+    controls._quat.setFromUnitVectors(camera.up, Y_UP);
+    controls._quatInverse.copy(controls._quat).invert();
+  },
+  enter(fromZoom) {
+    if (this.active) return;
+    if (Section.active) { Section.saved = null; Section.clear(); }
+    if (Archive.active) { Archive.saved = null; Archive.close(); }
+    if (State.selected) selectEvent(null);
+    this.active = true;
+    this.cool = performance.now() + 2600;
+    $('btn-globe').classList.add('on');
+    applyVisibility();
+    controls.enablePan = false; controls.zoomToCursor = false;
+    controls.minDistance = R_EARTH + 900; controls.maxDistance = 48000; controls.maxPolarAngle = Math.PI;
+    // いまの向きのまま地球全体が入るところまで引く。ボタンのときは日本を正面に
+    const dir = fromZoom ? camera.position.clone().sub(EARTH_C) : toLocal(28, 137, 0).sub(EARTH_C);
+    const dist = Math.max(fromZoom ? dir.length() : 0, R_EARTH * 3.6);
+    const sph = new THREE.Spherical().setFromVector3(dir);
+    flyTo({ target: EARTH_C, dist: dist / distScale(), polar: sph.phi / DEG, az: sph.theta / DEG, duration: fromZoom ? 1.3 : 2.2 });
+    document.querySelectorAll('#viewbar [data-view]').forEach((b) => b.classList.remove('on'));
+    this.load();
+  },
+  exit(ll) {
+    if (!this.active) return;
+    this.active = false;
+    this.cool = performance.now() + 2600;
+    $('btn-globe').classList.remove('on');
+    controls.enablePan = true; controls.zoomToCursor = true;
+    controls.minDistance = 60; controls.maxDistance = 12500; controls.maxPolarAngle = Math.PI * 0.56;
+    if (this.sel) { this.sel = null; renderDetail(null); setMarker(focusMarker, null); }
+    applyVisibility();
+    const latest = Store.list.find((e) => !e.foreign);
+    setMarker(latestMarker, latest || null);
+    if (ll) flyTo({ target: toLocal(ll.lat, ll.lon, -140), dist: GLOBE_EXIT * 0.9, polar: 38, az: 0, duration: 1.4 });
+    else setView('oblique', 2.2);
+  },
+  update(dt) {
+    const now = performance.now();
+    this.fade = lerp(this.fade, this.active ? 1 : 0, Math.min(1, dt * 3.5));
+    if (Math.abs(this.fade - (this.active ? 1 : 0)) < 0.003) this.fade = this.active ? 1 : 0;
+    this.blend = lerp(this.blend, this.active ? 1 : 0, Math.min(1, dt * 2.5));
+    if (Math.abs(this.blend - (this.active ? 1 : 0)) < 0.002) this.blend = this.active ? 1 : 0;
+    this.setAxis(this.blend);
+    globeU.uFade.value = this.fade;
+    skyFlat.value = this.fade;
+    globeMesh.visible = atmoMesh.visible = this.fade > 0.003;
+    faceU.uFaceCull.value = this.fade > 0.003 ? 1 : 0;
+    faceU.uCamLocal.value.copy(camera.position);
+    // ズームで自動的に切り替える
+    if (fly || now < this.cool) return;
+    if (!this.active && camera.position.distanceTo(controls.target) > GLOBE_ENTER) this.enter(true);
+    else if (this.active) {
+      const d = camera.position.distanceTo(EARTH_C);
+      if (d < R_EARTH + GLOBE_EXIT) {
+        const ll = localToLL(camera.position);
+        if (ll.lat > REGION.latMin + 1.5 && ll.lat < REGION.latMax - 1.5 && ll.lon > REGION.lonMin + 1.5 && ll.lon < REGION.lonMax - 1.5) this.exit(ll);
+      }
+    }
+  },
+  load() {
+    if (this.tex === 'none') {
+      this.tex = 'loading';
+      toast('世界の地形を読み込んでいます…', 'info', 2500);
+      const n = GLOBE_TILE.n - 1;
+      loadElevationMosaic(GLOBE_TILE.z, 0, n, 0, n).then(({ W, H, elev }) => {
+        globeU.uGlobeTex.value = bakeColorTexture(W, H, elev, GLOBE_TILE.z, 0);
+        globeU.uHasTex.value = 1;
+        this.tex = 'done';
+      }).catch(() => { this.tex = 'none'; toast('世界の地形を読み込めませんでした', 'warn'); });
+    }
+    if (this.quakes === 'none') {
+      this.quakes = 'loading';
+      const since = new Date(Date.now() - 5 * YEAR).toISOString().slice(0, 19);
+      Promise.all([
+        fetch(`${USGS_Q}?${new URLSearchParams({ format: 'csv', starttime: since, minmagnitude: 5.5, orderby: 'time-asc' })}`).then((r) => r.text()),
+        fetch(USGS_FEED_MONTH).then((r) => r.text()).catch(() => ''),
+      ]).then(([a, b]) => {
+        const seen = new Set(), items = [];
+        for (const e of [...parseUsgsCsv(a), ...parseUsgsCsv(b)]) {
+          if (seen.has(e.id) || inRegion(e.lat, e.lon)) continue;
+          seen.add(e.id); items.push(e);
+        }
+        items.sort((p, q) => p.time - q.time);
+        setPointData(globalLayer, items, (e, c) => depthColor(e.depth, c), globalSize);
+        this.quakes = 'done';
+        applyVisibility();
+      }).catch(() => { this.quakes = 'none'; toast('世界の地震を取得できませんでした', 'warn'); });
+    }
+    if (this.plates === 'none') {
+      this.plates = 'loading';
+      fetch(PB2002_URL).then((r) => r.json()).then((gj) => {
+        const segs = [], sub = [1.0, 0.42, 0.28, 0.85], other = [1.0, 0.72, 0.42, 0.5];
+        for (const f of gj.features || []) {
+          const c = f.properties?.Type === 'subduction' ? sub : other;
+          const lines = f.geometry?.type === 'MultiLineString' ? f.geometry.coordinates : [f.geometry?.coordinates || []];
+          for (const L of lines) for (let i = 0; i < L.length - 1; i++) {
+            const [lo1, la1] = L[i], [lo2, la2] = L[i + 1];
+            if (Math.abs(lo1 - lo2) > 180 || (inRegion(la1, lo1) && inRegion(la2, lo2))) continue;
+            // 長い区間は分けて球面に沿わせる
+            const k = Math.max(1, Math.ceil(Math.hypot(lo2 - lo1, la2 - la1) / 2));
+            for (let j = 0; j < k; j++) segs.push([lerp(lo1, lo2, j / k), lerp(la1, la2, j / k), -1, ...c], [lerp(lo1, lo2, (j + 1) / k), lerp(la1, la2, (j + 1) / k), -1, ...c]);
+          }
+        }
+        plateLines.geometry.dispose();
+        plateLines.geometry = lineGeometry(segs);
+        this.plates = 'done';
+        applyVisibility();
+      }).catch(() => { this.plates = 'none'; });
+    }
+  },
+  // 世界の地震を選んだとき
+  select(e) {
+    this.sel = e;
+    const ev = { hasHypo: true, inRegion: true, lat: e.lat, lon: e.lon, depth: e.depth, mag: e.mag, maxi: 0, name: e.place || '（場所不明）', time: e.time, globe: true };
+    setMarker(focusMarker, ev);
+    renderGlobalDetail(e);
+    const m = e.mag ?? 5.5;
+    const maxR = m >= 7.5 ? 3000 : m >= 6.5 ? 1800 : 1000;
+    const speed = (maxR / VS) / 7, now = performance.now();
+    addWave({ key: 'replay', lat: e.lat, lon: e.lon, depth: e.depth, start: now, speed, maxR });
+    State.replay = { ev, start: now, speed, total: maxR / VS + 1 };
+    $('replay-hud').classList.remove('hidden');
+  },
+};
+function renderGlobalDetail(e) {
+  const panel = $('detail-panel');
+  if (!e) { panel.classList.add('hidden'); return; }
+  panel.classList.remove('hidden');
+  $('detail-body').innerHTML = `
+    <div class="d-head"><div class="badge none big" style="font-size:15px">M${e.mag != null ? e.mag.toFixed(1) : '?'}</div><div><div class="d-kind">世界の地震（USGS）</div><div class="d-name">${esc(e.place || '場所不明')}</div><div class="d-time num">${fmtLong(e.time)}（日本時間）</div></div>
+      <button class="icon-btn" id="d-close" aria-label="閉じる"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="d-grid">
+      <div class="d-cell"><label>マグニチュード</label><b class="num">${e.mag != null ? e.mag.toFixed(1) : '不明'}</b></div>
+      <div class="d-cell"><label>深さ</label><b class="num">${Math.round(e.depth)}<small>km</small></b></div>
+      <div class="d-cell"><label>震源</label><b class="num" style="font-size:13px">${Math.abs(e.lat).toFixed(1)}°${e.lat >= 0 ? 'N' : 'S'} ${Math.abs(e.lon).toFixed(1)}°${e.lon >= 0 ? 'E' : 'W'}</b></div>
+      <div class="d-cell"><label>日本からの距離</label><b class="num">${Math.round(kmBetween(35.68, 139.76, e.lat, e.lon)).toLocaleString()}<small>km</small></b></div>
+    </div>
+    <div class="d-note">場所の名前は USGS の英語表記です。揺れの広がりは、地球の中をまっすぐ伝わるとした単純な目安です。</div>`;
+  $('d-close').onclick = () => { Globe.sel = null; stopReplay(); setMarker(focusMarker, null); renderGlobalDetail(null); };
+}
+
 // ====== 当たり判定・ツールチップ ======
 const _v = new THREE.Vector3();
 function pickAt(cx, cy) {
@@ -3129,8 +3418,17 @@ function pickAt(cx, cy) {
     _v.set(arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2]).project(camera);
     if (_v.z > 1 || _v.z < -1) return;
     const d = Math.hypot((_v.x + 1) / 2 * W - mx, (1 - _v.y) / 2 * H - my) - rad;
-    if (d < bd) { bd = d; best = make(); }
+    if (d < bd) {
+      const h = make();
+      const ll = h.e || h.s;
+      if (Globe.fade > 0.003 && ll && !facingCamera(ll.lat, ll.lon)) return;
+      bd = d; best = h;
+    }
   };
+  if (Globe.active && S.showUsgs && Globe.quakes === 'done') {
+    const arr = layerLocal(globalLayer), items = globalLayer.items;
+    for (let i = 0; i < items.length; i++) { const t = (items[i].time - T_REF) / 1000; if (t < T0 || t > T) continue; test(arr, i, 2, () => ({ kind: 'usgs', e: items[i], i, global: true })); }
+  }
   if (S.showStations && StationState.list.length && stationU.uReplayT.value > 0) {
     const arr = stationLocal();
     StationState.list.forEach((s, i) => { if (s.delay <= stationU.uReplayT.value) test(arr, i, 3, () => ({ kind: 'station', s })); });
@@ -3172,7 +3470,7 @@ function showTooltip(hit, x, y) {
     html = `<div class="tt-title">${miniBadge(e.maxi)}${esc(e.name)}</div><div class="tt-meta num">${fmtShort(e.time)} · ${fmtMag(e.mag)} · 深さ${fmtDepth(e.depth)}</div><div class="tt-meta" style="color:var(--dim)">クリックで揺れを再生</div>`;
   } else if (hit.kind === 'usgs') {
     const e = hit.e;
-    html = `<div class="tt-title">${fmtMag(e.mag)}　深さ${Math.round(e.depth)}km</div><div class="tt-meta num">${fmtDate(e.time)} ${fmtShort(e.time).split(' ')[1]}（日本時間）</div><div class="tt-meta" style="color:var(--dim)">${esc(e.place)}（USGS）</div>`;
+    html = `<div class="tt-title">${fmtMag(e.mag)}　深さ${Math.round(e.depth)}km</div><div class="tt-meta num">${fmtDate(e.time)} ${fmtShort(e.time).split(' ')[1]}（日本時間）</div><div class="tt-meta" style="color:var(--dim)">${esc(e.place)}（USGS）</div>${hit.global ? '<div class="tt-meta" style="color:var(--dim)">クリックで揺れの広がりを表示</div>' : ''}`;
   } else if (hit.kind === 'station') {
     const s = hit.s;
     html = `<div class="tt-title">${miniBadge(s.s)}${esc(s.name)}</div><div class="tt-meta">${esc(s.pref)}　${SHINDO[s.s].label}</div>`;
@@ -3197,6 +3495,7 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   if (Section.picking) { const ll = raySurface(e.clientX, e.clientY); if (ll) Section.onPick(ll); return; }
   const hit = pickAt(e.clientX, e.clientY);
   if (hit?.kind === 'jma') selectEvent(hit.e);
+  else if (hit?.global) Globe.select(hit.e);
   else if (hit?.kind === 'usgs' && e.pointerType !== 'mouse') showTooltip(hit, e.clientX, e.clientY);
 });
 function updateHover() {
@@ -3205,9 +3504,12 @@ function updateHover() {
   if (Section.picking) { showTooltip(null); Section.onMove(raySurface(pointer.x, pointer.y)); return; }
   const hit = pickAt(pointer.x, pointer.y);
   jmaLayer.u.uHover.value = hit?.kind === 'jma' ? hit.i : -1;
-  usgsLayer.u.uHover.value = hit?.kind === 'usgs' && !hit.arch ? hit.i : -1;
+  usgsLayer.u.uHover.value = hit?.kind === 'usgs' && !hit.arch && !hit.global ? hit.i : -1;
   archLayer.u.uHover.value = hit?.arch ? hit.i : -1;
+  globalLayer.u.uHover.value = hit?.global ? hit.i : -1;
+  if (hit?.global) renderer.domElement.style.cursor = 'pointer';
   renderer.domElement.style.cursor = hit?.kind === 'jma' ? 'pointer' : '';
+  if (hit?.global) renderer.domElement.style.cursor = 'pointer';
   showTooltip(hit, pointer.x, pointer.y);
 }
 
@@ -3264,7 +3566,7 @@ function announce(ev) {
 // 操作していないときだけ、新しい地震の震源へ視点を移して揺れを再生する
 function focusIfIdle(ev) {
   const idle = performance.now() - State.lastInteract > 25000;
-  if (S.autoFocus && idle && !Timeline.playing && !State.eew && !Archive.active && ev.hasHypo && ev.inRegion && (ev.maxi || 0) >= Math.min(S.notifyMin, 3)) selectEvent(ev);
+  if (S.autoFocus && idle && !Timeline.playing && !State.eew && !Archive.active && !Globe.active && ev.hasHypo && ev.inRegion && (ev.maxi || 0) >= Math.min(S.notifyMin, 3)) selectEvent(ev);
 }
 
 // ====== リアルタイム受信（P2P地震情報 WebSocket） ======
@@ -3391,6 +3693,7 @@ function handleEEW(m, demo = false) {
   for (const a of m.areas || []) { maxFrom = Math.max(maxFrom, shindoP2P(a.scaleFrom)); maxTo = Math.max(maxTo, a.scaleTo === 99 ? shindoP2P(a.scaleFrom) : shindoP2P(a.scaleTo)); }
   const isNewEvent = !State.eew || State.eew.id !== evId;
   if (Archive.active) Archive.close();
+  if (Globe.active && isNewEvent) Globe.exit();
   State.eew = { id: evId, demo, origin, lat: hasHypo ? +h.latitude : null, lon: hasHypo ? +h.longitude : null, depth: h.depth >= 0 ? +h.depth : 10, mag: h.magnitude > 0 ? +h.magnitude : null, name: h.name || '震源を調査中', maxi: Math.max(maxTo, maxFrom), areas: m.areas || [], serial: m.issue?.serial, until: origin + 180e3 };
   const E = State.eew;
   const box = $('eew');
@@ -3527,7 +3830,7 @@ function bindSettings() {
   });
   $('list-filter').onclick = (e) => { const b = e.target.closest('[data-min]'); if (!b) return; S.listMin = +b.dataset.min; saveSettings(); renderList(); };
   $('quake-list').onclick = (e) => { const b = e.target.closest('[data-id]'); if (!b) return; const ev = Store.events.get(b.dataset.id); if (ev) selectEvent(ev); };
-  $('viewbar').onclick = (e) => { const b = e.target.closest('[data-view]'); if (b) setView(b.dataset.view); };
+  $('viewbar').onclick = (e) => { const b = e.target.closest('[data-view]'); if (!b) return; if (Globe.active) Globe.exit(); setView(b.dataset.view); };
   $('btn-rotate').onclick = () => { S.autoRotate = !S.autoRotate; saveSettings(); applyVisibility(); };
   $('btn-layers').onclick = () => { $('layers-panel').classList.toggle('hidden'); $('btn-layers').classList.toggle('on', !$('layers-panel').classList.contains('hidden')); };
   $('btn-settings').onclick = () => openModal('settings-modal');
@@ -3565,8 +3868,9 @@ function bindSettings() {
     }
     else if (e.key === ' ') { e.preventDefault(); Timeline.toggle(); }
     else if (e.key === 's' || e.key === 'S') $('btn-section').click();
-    else if (e.key === 'r' || e.key === 'R') setView('oblique');
-    else if (['1', '2', '3', '4'].includes(e.key)) setView(['oblique', 'top', 'south', 'east'][+e.key - 1]);
+    else if (e.key === 'g' || e.key === 'G') $('btn-globe').click();
+    else if (e.key === 'r' || e.key === 'R') { if (Globe.active) Globe.exit(); setView('oblique'); }
+    else if (['1', '2', '3', '4'].includes(e.key)) { if (Globe.active) Globe.exit(); setView(['oblique', 'top', 'south', 'east'][+e.key - 1]); }
   });
 }
 function getGeo() {
@@ -3631,9 +3935,12 @@ function frame(now) {
   lastFrame = now;
   updateFly(now);
   controls.update(dt);
-  // 注視点が範囲から出すぎないように
-  const t = controls.target;
-  t.x = clamp(t.x, -2600, 2600); t.z = clamp(t.z, -2600, 2600); t.y = clamp(t.y, -MAX_DEPTH * 5, 400);
+  // 注視点が範囲から出すぎないように（地球儀のときと移動中は除く）
+  if (!Globe.active && !fly) {
+    const t = controls.target;
+    t.x = clamp(t.x, -2600, 2600); t.z = clamp(t.z, -2600, 2600); t.y = clamp(t.y, -MAX_DEPTH * 5, 400);
+  }
+  Globe.update(dt);
   sky.position.copy(camera.position);
   const dist = camera.position.distanceTo(controls.target);
   camera.near = clamp(dist * 0.004, 0.5, 60);
@@ -3658,6 +3965,8 @@ function frame(now) {
     if (ev) {
       m.visible = ev.time <= Timeline.T + 1000 || (m === focusMarker && !!State.eew);
       if (m.visible && cutU.uCut.value > 0.5 && unitLL(ev.lat, ev.lon).dot(cutU.uCutN.value) * R_EARTH > cutU.uCutOff.value) m.visible = false;
+      if (m.visible && Globe.fade > 0.003 && !facingCamera(ev.lat, ev.lon)) m.visible = false;
+      if (m === latestMarker && Globe.active) m.visible = false;
     }
     if (m.visible) {
       // 画面の右側にあるときは説明カードを左に出す
@@ -3714,6 +4023,7 @@ async function main() {
   Timeline.init();
   Section.init();
   Archive.init();
+  Globe.init();
   applyVisibility();
   applyExaggeration();
   if (S.meLat != null) setMe(S.meLat, S.meLon, S.me === 'geo' ? '現在地' : PREFS.find((p) => String(p.code) === S.me)?.cap);
@@ -3770,7 +4080,7 @@ async function main() {
 main();
 
 // 開発者ツールから確認するための入口
-window.quake3d = { Store, State, S, selectEvent, runDemo, onMessage, setView, Timeline, camera, controls, renderer, composer, scene, U, terrainU };
+window.quake3d = { Store, State, S, selectEvent, runDemo, onMessage, setView, Timeline, Section, Archive, Globe, camera, controls, renderer, composer, scene, U, terrainU };
 </script>
 </body>
 </html>
