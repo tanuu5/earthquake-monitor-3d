@@ -2423,13 +2423,17 @@ function focusIfIdle(ev) {
 // 受信したタブ（リーダー）が他のタブへ中継する。
 const Conn = { ws: null, retry: 0, timer: null, leader: false, state: '', text: '' };
 const channel = 'BroadcastChannel' in window ? new BroadcastChannel('quake3d') : null;
+const CONN_HELP = {
+  ok: 'P2P地震情報のリアルタイム配信を受信しています。',
+  bad: 'P2P地震情報のリアルタイム配信に接続できていません。同じネットワークからの接続数の上限（2本）に達していることがあります。そのあいだも地震情報は1分ごとに確認しています。',
+};
 function setConn(state, text) {
   Conn.state = state; Conn.text = text;
   const el = $('conn');
   el.className = 'conn ' + state;
   const label = (SANDBOX ? '[試験配信] ' : '') + text;
   el.querySelector('.txt').textContent = label;
-  el.title = label;
+  el.title = CONN_HELP[state] || label;
   if (Conn.leader) channel?.postMessage({ type: 'conn', state, text });
 }
 function startRealtime() {
@@ -2456,7 +2460,7 @@ function connectWS() {
     channel?.postMessage({ type: 'msg', m });
     try { onMessage(m); } catch (err) { console.warn(err); }
   };
-  Conn.ws.onclose = () => { setConn('bad', '再接続を待っています'); scheduleReconnect(); };
+  Conn.ws.onclose = () => { setConn('bad', '再接続待ち（1分ごとに確認中）'); scheduleReconnect(); };
   Conn.ws.onerror = () => {};
 }
 function scheduleReconnect() {
