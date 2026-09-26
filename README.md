@@ -7,7 +7,7 @@ Three.js で作った `index.html` 1ファイルだけで動き、地形や地�
 開発には AI コーディングツールの [Claude Code](https://claude.com/claude-code)（モデル：Claude Opus 5.5、effort：Max）を使いました。
 
 **▶ ブラウザで開く：[https://tanuu5.github.io/earthquake-monitor-3d/](https://tanuu5.github.io/earthquake-monitor-3d/)**
-（インストール不要。PC・スマホ・タブレットのブラウザで動きます）
+（インストール不要。PC・スマホ・タブレットのブラウザで動きます。ホーム画面やデスクトップにアプリとして追加することもできます）
 
 ![全体の表示](docs/images/overview.jpg)
 
@@ -92,6 +92,15 @@ Three.js で作った `index.html` 1ファイルだけで動き、地形や地�
 
 - WebGL2 に対応したブラウザ（Chrome / Edge / Firefox / Safari の最新版）
 - スマホなど画面の小さい端末では、読み込む地形の細かさを1段階下げて軽くしています
+- ホーム画面・デスクトップに追加できます（PWA）。three.js と地形タイルはブラウザに保存するので、2回目からは速く起動します。地震の情報は保存せず、いつも最新のものを取得します
+
+## ファイル
+
+| ファイル | 内容 |
+| --- | --- |
+| `index.html` | アプリ本体（HTML・CSS・JavaScript をすべて含む。このファイルだけでも動きます） |
+| `manifest.webmanifest`, `sw.js`, `icons/` | ホーム画面に追加するための設定・サービスワーカー・アイコン |
+| `docs/images/` | README の画像 |
 
 ## 開発
 
@@ -126,6 +135,7 @@ python3 -m http.server 8765
 - **県ごとの塗り分け**：県境データ（TopoJSON）を標高タイルと同じ座標のラスターに自前で塗りつぶし、シェーダから参照しています。
 - **地球儀**：地球全体の標高タイル（ズームレベル3）を1枚にまとめて陰影を焼き込み、緯度・経度1度ごとの球に貼っています。日本付近だけは詳しい地形を見せ、地球儀のあいだは OrbitControls の回転軸を地球の自転軸に切り替えて北が上になるようにしています。
 - **リアルタイム受信**：P2P地震情報の WebSocket に接続します。Web Locks API と BroadcastChannel で、複数タブのうち1つだけが接続して他のタブに中継します。
+- **PWA**：サービスワーカーで、アプリ本体はネット優先、three.js と地形タイルは一度取ったら保存した版を使い、県境・プレート境界は保存した版を返しながら裏で更新します。地震の情報（気象庁・P2P地震情報・USGS）は保存しません。
 - **使用技術**：Three.js（r186）、WebGL2、Web Audio API
 
 ## ライセンス

@@ -6,6 +6,13 @@
 <title>地震3Dモニター</title>
 <meta name="description" content="日本周辺の地震を立体で見るリアルタイム地震モニター。震源の深さ、沈み込むプレート、揺れの広がりを3Dで表示します。">
 <meta name="theme-color" content="#03060d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%235ec8ff'/%3E%3Cstop offset='1' stop-color='%238f7dff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%230a1426'/%3E%3Cpath d='M9 34h9l4-10 6 20 5-25 5 22 4-12 3 5h10' fill='none' stroke='url(%23g)' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="地震3D">
 <!--
   地震3Dモニター
   Copyright (c) 2026 たぬ — MIT License
@@ -32,6 +39,8 @@
   --list-w: 318px;
   --gap: 14px;
   --tl-bottom: calc(var(--gap) + 12px);
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
@@ -50,7 +59,7 @@ svg.ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-wid
 .panel { position: fixed; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); backdrop-filter: blur(16px) saturate(1.35); -webkit-backdrop-filter: blur(16px) saturate(1.35); box-shadow: 0 14px 44px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.04); }
 
 /* ---- 上部バー ---- */
-#topbar { position: fixed; top: var(--gap); left: var(--gap); right: var(--gap); height: 46px; display: flex; align-items: center; gap: 12px; pointer-events: none; z-index: 20; }
+#topbar { position: fixed; top: calc(var(--gap) + var(--sat)); left: var(--gap); right: var(--gap); height: 46px; display: flex; align-items: center; gap: 12px; pointer-events: none; z-index: 20; }
 #topbar > * { pointer-events: auto; }
 .brand { display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 10px; height: 46px; }
 .brand .logo { width: 30px; height: 30px; }
@@ -75,7 +84,7 @@ svg.ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-wid
 .icon-btn.on { color: var(--accent); background: rgba(94, 200, 255, 0.12); }
 
 /* ---- 地震一覧 ---- */
-#list-panel { top: calc(var(--gap) + 58px); left: var(--gap); bottom: var(--gap); width: var(--list-w); display: flex; flex-direction: column; z-index: 10; overflow: hidden; }
+#list-panel { top: calc(var(--gap) + 58px + var(--sat)); left: var(--gap); bottom: var(--gap); width: var(--list-w); display: flex; flex-direction: column; z-index: 10; overflow: hidden; }
 .panel-head { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 16px 8px; }
 .panel-tabs { display: flex; align-items: center; gap: 4px; padding: 10px 12px 8px; }
 .ptab { font-size: 13px; font-weight: 700; padding: 5px 10px; border-radius: 8px; color: var(--sub); transition: background .15s, color .15s; }
@@ -119,7 +128,7 @@ svg.ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-wid
 .badge.big.small-txt { font-size: 19px; }
 
 /* ---- 詳細パネル ---- */
-#detail-panel { top: calc(var(--gap) + 58px); right: var(--gap); width: 336px; max-height: calc(100% - 58px - var(--tl-bottom) - 104px - 44px - var(--gap) * 4); display: flex; flex-direction: column; z-index: 12; overflow: hidden; animation: slide-in .28s cubic-bezier(.2,.8,.2,1); }
+#detail-panel { top: calc(var(--gap) + 58px + var(--sat)); right: var(--gap); width: 336px; max-height: calc(100% - 58px - var(--tl-bottom) - 104px - 44px - var(--gap) * 4); display: flex; flex-direction: column; z-index: 12; overflow: hidden; animation: slide-in .28s cubic-bezier(.2,.8,.2,1); }
 @keyframes slide-in { from { transform: translateX(20px); opacity: 0; } }
 .d-scroll { overflow-y: auto; padding: 16px; scrollbar-width: thin; scrollbar-color: rgba(150,185,255,.2) transparent; }
 .d-head { display: grid; grid-template-columns: 58px 1fr 30px; gap: 12px; align-items: center; }
@@ -208,7 +217,7 @@ svg.ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-wid
 .lp-sep { height: 1px; background: var(--line); margin: 8px 0; }
 
 /* ---- 緊急地震速報 ---- */
-#eew { position: fixed; top: calc(var(--gap) + 58px); left: 50%; transform: translateX(-50%); width: min(620px, calc(100% - 28px)); z-index: 40; border-radius: 16px; overflow: hidden; background: linear-gradient(180deg, rgba(120, 8, 14, 0.94), rgba(70, 4, 10, 0.94)); border: 1px solid rgba(255, 90, 80, 0.7); box-shadow: 0 0 0 1px rgba(255, 60, 50, 0.3), 0 18px 60px rgba(255, 0, 0, 0.35); animation: eew-glow 1.2s ease-in-out infinite; }
+#eew { position: fixed; top: calc(var(--gap) + 58px + var(--sat)); left: 50%; transform: translateX(-50%); width: min(620px, calc(100% - 28px)); z-index: 40; border-radius: 16px; overflow: hidden; background: linear-gradient(180deg, rgba(120, 8, 14, 0.94), rgba(70, 4, 10, 0.94)); border: 1px solid rgba(255, 90, 80, 0.7); box-shadow: 0 0 0 1px rgba(255, 60, 50, 0.3), 0 18px 60px rgba(255, 0, 0, 0.35); animation: eew-glow 1.2s ease-in-out infinite; }
 #eew.demo { background: linear-gradient(180deg, rgba(90, 40, 8, 0.94), rgba(50, 22, 4, 0.94)); border-color: rgba(255, 170, 60, 0.7); animation: none; }
 @keyframes eew-glow { 50% { box-shadow: 0 0 0 1px rgba(255, 60, 50, 0.6), 0 18px 80px rgba(255, 30, 20, 0.6); } }
 .eew-top { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(0, 0, 0, 0.22); }
@@ -227,7 +236,7 @@ svg.ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-wid
 .eew-areas span { font-size: 11.5px; background: rgba(0, 0, 0, 0.28); border-radius: 6px; padding: 2px 7px; }
 
 /* ---- 再生HUD / ツールチップ / トースト ---- */
-#replay-hud { position: fixed; top: calc(var(--gap) + 60px); left: 50%; transform: translateX(-50%); z-index: 15; display: flex; align-items: center; gap: 12px; padding: 7px 8px 7px 16px; border-radius: 999px; font-size: 12.5px; }
+#replay-hud { position: fixed; top: calc(var(--gap) + 60px + var(--sat)); left: 50%; transform: translateX(-50%); z-index: 15; display: flex; align-items: center; gap: 12px; padding: 7px 8px 7px 16px; border-radius: 999px; font-size: 12.5px; }
 #replay-hud .rh-wave { display: flex; gap: 10px; font-size: 11.5px; color: var(--sub); }
 #replay-hud .rh-wave i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
 #replay-hud b { font-family: var(--mono); font-weight: 600; }
@@ -236,7 +245,7 @@ svg.ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-wid
 #tooltip .tt-meta { color: var(--sub); font-size: 11.5px; }
 #tooltip i { font-style: normal; font-weight: 800; font-size: 10.5px; padding: 1px 5px; border-radius: 4px; color: #fff; }
 #tooltip i.dark { color: #111; }
-#toasts { position: fixed; top: calc(var(--gap) + 60px); right: var(--gap); z-index: 60; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; pointer-events: none; }
+#toasts { position: fixed; top: calc(var(--gap) + 60px + var(--sat)); right: var(--gap); z-index: 60; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; pointer-events: none; }
 .toast { pointer-events: auto; padding: 10px 14px; border-radius: 11px; font-size: 12.5px; background: var(--glass-2); border: 1px solid var(--line-2); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); animation: toast-in .3s ease-out; max-width: 340px; }
 .toast.warn { border-color: rgba(255, 176, 32, 0.55); }
 .toast.bad { border-color: rgba(255, 59, 48, 0.6); }
@@ -335,7 +344,7 @@ body.sec-open #viewbar { bottom: calc(var(--tl-bottom) + 104px + var(--sec-h) + 
 body.sec-open #layers-panel { bottom: calc(var(--tl-bottom) + 104px + var(--sec-h) + var(--gap) * 3 + 44px); }
 body.sec-open #detail-panel { max-height: calc(100% - 58px - var(--tl-bottom) - 104px - var(--sec-h) - 44px - var(--gap) * 5); }
 body.picking #stage canvas { cursor: crosshair !important; }
-#pick-hint { position: fixed; top: calc(var(--gap) + 60px); left: 50%; transform: translateX(-50%); z-index: 16; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; border-radius: 999px; font-size: 12.5px; white-space: nowrap; }
+#pick-hint { position: fixed; top: calc(var(--gap) + 60px + var(--sat)); left: 50%; transform: translateX(-50%); z-index: 16; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; border-radius: 999px; font-size: 12.5px; white-space: nowrap; }
 #pick-hint b { color: var(--accent); }
 .lbl-sec { font-size: 11px; font-weight: 800; color: #0b1020; background: #7fe0ff; border-radius: 5px; padding: 1px 6px; box-shadow: 0 0 10px rgba(127, 224, 255, 0.7); }
 .lbl-sec.len { background: rgba(8, 12, 22, 0.8); color: #bfefff; font-weight: 600; box-shadow: none; border: 1px solid rgba(127, 224, 255, 0.45); }
@@ -363,9 +372,9 @@ body.picking #stage canvas { cursor: crosshair !important; }
   .clock small { display: none; }
   .conn .txt { display: none; }
   .conn { border: 0; padding: 0 6px; }
-  #list-panel { top: auto; left: var(--gap); right: var(--gap); bottom: calc(var(--gap) + 52px + 86px + var(--gap)); width: auto; height: 46vh; display: none; }
+  #list-panel { top: auto; left: var(--gap); right: var(--gap); bottom: calc(var(--gap) + 52px + 86px + var(--gap) + var(--sab)); width: auto; height: 46vh; display: none; }
   body.m-list #list-panel { display: flex; }
-  #detail-panel { top: auto; left: var(--gap); right: var(--gap); width: auto; bottom: calc(var(--gap) + 52px + 86px + var(--gap)); max-height: 36vh; }
+  #detail-panel { top: auto; left: var(--gap); right: var(--gap); width: auto; bottom: calc(var(--gap) + 52px + 86px + var(--gap) + var(--sab)); max-height: 36vh; }
   #detail-panel .d-scroll { padding: 12px 14px; }
   #detail-panel .d-head { grid-template-columns: 46px 1fr 30px; gap: 10px; }
   #detail-panel .badge.big { width: 46px; height: 46px; font-size: 21px; }
@@ -380,7 +389,7 @@ body.picking #stage canvas { cursor: crosshair !important; }
   body.m-list #detail-panel, body.m-list #viewbar { display: none; }
   #replay-hud { white-space: nowrap; padding: 5px 6px 5px 12px; gap: 8px; }
   #replay-hud .rh-label { display: none; }
-  #timeline { left: var(--gap); right: var(--gap); bottom: calc(var(--gap) + 52px); height: 86px; grid-template-columns: 44px 1fr; padding: 6px 10px 6px 4px; }
+  #timeline { left: var(--gap); right: var(--gap); bottom: calc(var(--gap) + 52px + var(--sab)); height: 86px; grid-template-columns: 44px 1fr; padding: 6px 10px 6px 4px; }
   .tl-play { width: 40px; height: 40px; }
   .tl-info { display: none; }
   .tl-top { gap: 6px; }
@@ -391,9 +400,9 @@ body.picking #stage canvas { cursor: crosshair !important; }
   .tl-ranges .rl { display: none; }
   .tl-ranges .rs { display: inline; }
   #legend { display: none; }
-  #viewbar { bottom: calc(var(--gap) * 2 + 52px + 86px); right: var(--gap); }
+  #viewbar { bottom: calc(var(--gap) * 2 + 52px + 86px + var(--sab)); right: var(--gap); }
   #viewbar button.txt-btn, #viewbar span.txt-btn { display: none; }
-  #layers-panel { left: var(--gap); right: var(--gap); width: auto; bottom: calc(var(--gap) * 3 + 52px + 86px + 44px); max-height: 50vh; overflow-y: auto; }
+  #layers-panel { left: var(--gap); right: var(--gap); width: auto; bottom: calc(var(--gap) * 3 + 52px + 86px + 44px + var(--sab)); max-height: 50vh; overflow-y: auto; }
   :root { --sec-h: 236px; }
   .sp-redraw-t { display: none; }
   #sp-redraw { padding: 0 8px !important; }
@@ -401,7 +410,7 @@ body.picking #stage canvas { cursor: crosshair !important; }
   #sp-preset { flex: 1 1 0; width: 0; min-width: 60px; max-width: none !important; }
   .sp-width b { min-width: 0 !important; }
   .sp-right { flex-wrap: nowrap !important; }
-  #section-panel { left: var(--gap); right: var(--gap); bottom: calc(var(--gap) * 2 + 52px + 86px); padding: 6px 8px; }
+  #section-panel { left: var(--gap); right: var(--gap); bottom: calc(var(--gap) * 2 + 52px + 86px + var(--sab)); padding: 6px 8px; }
   .sp-meta { display: none; }
   .sp-left { flex: 1 1 100%; align-items: center; }
   .sp-close-m { display: grid; width: 30px; height: 30px; }
@@ -409,20 +418,20 @@ body.picking #stage canvas { cursor: crosshair !important; }
   .sp-right { flex: 1 1 100%; flex-wrap: wrap; gap: 6px; }
   .sp-width input { width: 80px; }
   #sp-preset { max-width: 130px; }
-  body.sec-open #viewbar { bottom: calc(var(--gap) * 3 + 52px + 86px + var(--sec-h)); }
-  body.sec-open #layers-panel { bottom: calc(var(--gap) * 4 + 52px + 86px + 44px + var(--sec-h)); }
+  body.sec-open #viewbar { bottom: calc(var(--gap) * 3 + 52px + 86px + var(--sec-h) + var(--sab)); }
+  body.sec-open #layers-panel { bottom: calc(var(--gap) * 4 + 52px + 86px + 44px + var(--sec-h) + var(--sab)); }
   body.sec-open #detail-panel { display: none; }
-  #pick-hint { top: calc(var(--gap) + 50px); font-size: 11.5px; }
-  #mobile-tabs { display: flex; position: fixed; left: var(--gap); right: var(--gap); bottom: var(--gap); height: 48px; z-index: 30; padding: 4px; gap: 4px; }
+  #pick-hint { top: calc(var(--gap) + 50px + var(--sat)); font-size: 11.5px; }
+  #mobile-tabs { display: flex; position: fixed; left: var(--gap); right: var(--gap); bottom: calc(var(--gap) + var(--sab)); height: 48px; z-index: 30; padding: 4px; gap: 4px; }
   #mobile-tabs button { flex: 1; border-radius: 10px; font-size: 12px; color: var(--sub); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
   #mobile-tabs button.on { color: var(--accent); background: rgba(94, 200, 255, 0.12); }
   #mobile-tabs svg.ic { width: 17px; height: 17px; }
   #credits { display: none; }
-  #eew { top: calc(var(--gap) + 50px); }
+  #eew { top: calc(var(--gap) + 50px + var(--sat)); }
   .eew-name { font-size: 17px; }
-  #replay-hud { top: calc(var(--gap) + 50px); font-size: 11.5px; }
+  #replay-hud { top: calc(var(--gap) + 50px + var(--sat)); font-size: 11.5px; }
   #replay-hud .rh-wave { display: none; }
-  #toasts { top: calc(var(--gap) + 50px); left: var(--gap); align-items: stretch; }
+  #toasts { top: calc(var(--gap) + 50px + var(--sat)); left: var(--gap); align-items: stretch; }
   .lbl-city.foreign { display: none; }
   .lbl-plate { font-size: 10px; letter-spacing: .18em; }
   .lbl-city { font-size: 10.5px; }
@@ -4260,6 +4269,11 @@ async function main() {
   loadUsgs('base', () => { clearTimeout(pending); pending = setTimeout(rebuildUsgs, 120); }).then(() => { rebuildUsgs(); });
 }
 main();
+
+// ホーム画面に追加して使えるようにする（sw.js がない場所に置いたときは何もしない）
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
 
 // 開発者ツールから確認するための入口
 window.quake3d = { Store, State, S, selectEvent, runDemo, onMessage, setView, Timeline, Section, Archive, Globe, camera, controls, renderer, composer, scene, U, terrainU };
