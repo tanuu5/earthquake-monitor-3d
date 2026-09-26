@@ -77,6 +77,20 @@ svg.ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-wid
 /* ---- 地震一覧 ---- */
 #list-panel { top: calc(var(--gap) + 58px); left: var(--gap); bottom: var(--gap); width: var(--list-w); display: flex; flex-direction: column; z-index: 10; overflow: hidden; }
 .panel-head { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 16px 8px; }
+.panel-tabs { display: flex; align-items: center; gap: 4px; padding: 10px 12px 8px; }
+.ptab { font-size: 13px; font-weight: 700; padding: 5px 10px; border-radius: 8px; color: var(--sub); transition: background .15s, color .15s; }
+.ptab:hover { color: var(--text); }
+.ptab.on { color: var(--text); background: rgba(150, 185, 255, 0.10); }
+.panel-tabs .ph-count { margin-left: auto; padding-right: 4px; }
+.pane { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.arch-note { font-size: 11px; color: var(--dim); padding: 0 16px 8px; line-height: 1.65; }
+.q-sub { font-size: 11px; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-item.arch-on { background: rgba(255, 150, 90, 0.12); box-shadow: inset 0 0 0 1px rgba(255, 150, 90, 0.4); }
+#timeline.arch .tl-ranges { display: none; }
+#timeline.arch .tl-info { display: block !important; color: #ffd2b0; }
+#timeline.arch .tl-live { color: #ffd2b0; border-color: rgba(255, 150, 90, 0.5); }
+.d-chart { width: 100%; height: 76px; display: block; margin-top: 4px; }
+.d-cap { font-size: 10.5px; color: var(--dim); margin-top: 2px; }
 .ph-title { font-weight: 700; font-size: 14px; letter-spacing: .03em; }
 .ph-sub { font-weight: 400; font-size: 11px; color: var(--dim); margin-left: 6px; }
 .ph-count { font-size: 11px; color: var(--sub); }
@@ -444,18 +458,25 @@ body.picking #stage canvas { cursor: crosshair !important; }
   </div>
 </header>
 
-<aside id="list-panel" class="panel" aria-label="最近の地震">
-  <div class="panel-head">
-    <div class="ph-title">最近の地震<span class="ph-sub">気象庁発表</span></div>
-    <div class="ph-count num" id="list-count"></div>
+<aside id="list-panel" class="panel" aria-label="地震の一覧">
+  <div class="panel-tabs" role="tablist">
+    <button class="ptab on" data-ptab="recent" role="tab" aria-selected="true">最近の地震</button>
+    <button class="ptab" data-ptab="archive" role="tab" aria-selected="false">過去の大地震</button>
+    <span class="ph-count num" id="list-count"></span>
   </div>
-  <div class="chips" id="list-filter">
-    <button class="chip" data-min="1">震度1以上</button>
-    <button class="chip" data-min="3">震度3以上</button>
-    <button class="chip" data-min="4">震度4以上</button>
-    <button class="chip" data-min="5">5弱以上</button>
+  <div class="pane" id="recent-pane">
+    <div class="chips" id="list-filter">
+      <button class="chip" data-min="1">震度1以上</button>
+      <button class="chip" data-min="3">震度3以上</button>
+      <button class="chip" data-min="4">震度4以上</button>
+      <button class="chip" data-min="5">5弱以上</button>
+    </div>
+    <div id="quake-list" class="quake-list"><div class="q-empty">地震情報を取得しています…</div></div>
   </div>
-  <div id="quake-list" class="quake-list"><div class="q-empty">地震情報を取得しています…</div></div>
+  <div class="pane hidden" id="archive-pane">
+    <div class="arch-note">選ぶと、本震の前後の地震を早送りで再生します。震源は USGS のデータで、日本付近ではおおむね M4 以上です。</div>
+    <div id="archive-list" class="quake-list"></div>
+  </div>
 </aside>
 
 <aside id="detail-panel" class="panel hidden" aria-live="polite"><div class="d-scroll" id="detail-body"></div></aside>
@@ -611,6 +632,7 @@ body.picking #stage canvas { cursor: crosshair !important; }
         <li>ドラッグで回転、右ドラッグ（2本指）で移動、ホイール（ピンチ）でズーム。</li>
         <li>地震の点や一覧をクリックすると、震源へ移動して<b>揺れの広がり（P波・S波）と各地の震度</b>を再生します。</li>
         <li>下のタイムラインで表示期間を切り替え、▶で地震活動を早送り再生できます。バーをドラッグすると好きな時点を表示できます。</li>
+        <li>左の一覧の「過去の大地震」タブから、東日本大震災や能登半島地震などを選ぶと、本震の前後の地震を早送りで再生します。本震の時刻で一時停止して、揺れの広がりも見せます。</li>
         <li>右下の「断面」を押して地図上の2点をクリックすると、その線に沿って地下を切った<b>断面</b>を表示します。断面の近く（初期値は±50km）の震源だけが残り、画面下に距離と深さの断面図が出ます。「断面の例」から東北や伊豆・小笠原などを選ぶこともできます。</li>
         <li>キーボード：<kbd>Space</kbd> 再生／停止、<kbd>1</kbd>〜<kbd>4</kbd> 視点、<kbd>S</kbd> 断面、<kbd>R</kbd> 視点リセット、<kbd>Esc</kbd> 閉じる</li>
       </ul>
@@ -2060,7 +2082,7 @@ function rebuildJma() {
   dropLines.geometry = lineGeometry(segs);
   syncSelectionIndex();
   const latest = Store.list.find((e) => !e.foreign);
-  setMarker(latestMarker, latest && latest !== State.selected ? latest : null);
+  setMarker(latestMarker, latest && latest !== State.selected && !Archive.active ? latest : null);
   renderLatestChip(latest);
   renderList();
   Timeline.draw();
@@ -2075,9 +2097,11 @@ function syncSelectionIndex() {
   jmaLayer.u.uSel.value = i;
 }
 function applyVisibility() {
-  for (const o of jmaLayer.objs) o.visible = S.showJma;
-  dropLines.visible = S.showJma;
-  for (const o of usgsLayer.objs) o.visible = S.showUsgs;
+  const arch = !!Archive.active;
+  for (const o of jmaLayer.objs) o.visible = S.showJma && !arch;
+  dropLines.visible = S.showJma && !arch;
+  for (const o of usgsLayer.objs) o.visible = S.showUsgs && !arch;
+  for (const o of archLayer.objs) o.visible = S.showUsgs && arch;
   stationMesh.visible = S.showStations && StationState.list.length > 0;
   borderLines.visible = S.showBorders;
   trenchLines.visible = S.showPlates;
@@ -2156,11 +2180,12 @@ function flyToEvent(ev) {
 
 // ====== 選択・揺れの再生 ======
 async function selectEvent(ev, { fly: doFly = true, replay = true } = {}) {
+  if (ev && Archive.active) Archive.close();
   State.selected = ev;
   syncSelectionIndex();
   setMarker(focusMarker, ev);
   const latest = Store.list.find((e) => !e.foreign);
-  setMarker(latestMarker, latest && latest !== ev ? latest : null);
+  setMarker(latestMarker, latest && latest !== ev && !Archive.active ? latest : null);
   renderList();
   renderDetail(ev);
   setPrefTint(ev?.prefs);
@@ -2278,7 +2303,11 @@ const RANGES = [['1d', '24時間', 864e5, '1日'], ['7d', '7日', 7 * 864e5], ['
 const Timeline = {
   live: true, playing: false, T: Date.now(), dragging: false, lastDraw: 0,
   range() { return RANGES.find((r) => r[0] === S.range) || RANGES[4]; },
-  bounds() { const now = Date.now(); return [now - this.range()[2], now]; },
+  bounds() {
+    if (Archive.active) return Archive.bounds();
+    const now = Date.now();
+    return [now - this.range()[2], now];
+  },
   init() {
     const box = $('tl-ranges');
     box.innerHTML = RANGES.map(([k, l, , s]) => `<button data-range="${k}" title="過去${l}を表示">${s ? `<span class="rl">${l}</span><span class="rs">${s}</span>` : l}</button>`).join('');
@@ -2296,10 +2325,11 @@ const Timeline = {
     };
     cv.addEventListener('pointerdown', (e) => { this.dragging = true; cv.setPointerCapture(e.pointerId); scrub(e); });
     cv.addEventListener('pointermove', (e) => { if (this.dragging) scrub(e); });
-    cv.addEventListener('pointerup', () => { this.dragging = false; if (this.T > Date.now() - 1000) this.goLive(); });
+    cv.addEventListener('pointerup', () => { this.dragging = false; if (!Archive.active && this.T > Date.now() - 1000) this.goLive(); });
     this.syncUI();
   },
   setRange(k) {
+    if (Archive.active) Archive.close();
     S.range = k; saveSettings();
     if (k === '20y') loadUsgs('ext', () => rebuildUsgs()).then(() => rebuildUsgs());
     this.playing = false;
@@ -2307,19 +2337,28 @@ const Timeline = {
   },
   toggle() {
     if (this.playing) { this.playing = false; }
+    else if (Archive.holding) { stopReplay(); Archive.resumeAfterHold = false; this.playing = true; }
     else {
       const [a, b] = this.bounds();
+      if (Archive.active && this.T >= b - 1000) { Archive.replay(); return; }
       if (this.live || this.T >= b - 1000) this.T = a;
       this.live = false; this.playing = true;
       if (State.replay) stopReplay();
     }
+    if (Archive.holding && !this.playing) Archive.resumeAfterHold = false;
     this.syncUI();
   },
-  goLive() { this.live = true; this.playing = false; this.T = Date.now(); this.syncUI(); },
+  // 過去の大地震を表示中は「終了」ボタンになる
+  goLive() {
+    if (Archive.active) { Archive.close(); return; }
+    this.live = true; this.playing = false; this.T = Date.now(); this.syncUI();
+  },
   syncUI() {
     document.querySelectorAll('#tl-ranges [data-range]').forEach((b) => b.classList.toggle('on', b.dataset.range === S.range));
     $('tl-play-ic').innerHTML = this.playing ? '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>' : '<path d="M8 5.5v13l10.5-6.5z"/>';
-    $('tl-live').classList.toggle('on', this.live);
+    $('tl-live').classList.toggle('on', this.live && !Archive.active);
+    $('tl-live').textContent = Archive.active ? '終了' : 'LIVE';
+    $('tl-live').title = Archive.active ? '過去の大地震の表示を終えて、現在に戻る' : '現在時刻の表示に戻る';
     $('tl-speed').textContent = '×' + S.speed;
     this.draw();
   },
@@ -2328,13 +2367,14 @@ const Timeline = {
     if (this.live) this.T = b;
     if (this.playing) {
       this.T += (b - a) / (32 / S.speed) * dt;
-      if (this.T >= b) { this.T = b; this.playing = false; this.live = true; this.syncUI(); }
+      if (this.T >= b) { this.T = b; this.playing = false; if (!Archive.active) this.live = true; this.syncUI(); }
     }
     this.T = clamp(this.T, a, b);
     timeU.uT.value = (this.T - T_REF) / 1000;
     timeU.uT0.value = (a - T_REF) / 1000;
     timeU.uNow.value = (Date.now() - T_REF) / 1000;
-    timeU.uFlash.value = this.playing || !this.live ? (b - a) / 1000 * 0.012 : 1;
+    // 再生中に現れた地震を光らせる時間（過去の大地震は数が多いので短め）
+    timeU.uFlash.value = this.playing || !this.live ? (b - a) / 1000 * (Archive.active ? 0.004 : 0.012) : 1;
     const now = performance.now();
     if (now - this.lastDraw > (this.playing || this.dragging ? 50 : 1000)) this.draw();
   },
@@ -2353,15 +2393,17 @@ const Timeline = {
     const bins = Math.max(20, Math.floor(w / 4));
     const cu = new Float32Array(bins), cj = new Float32Array(bins), mj = new Uint8Array(bins);
     const binOf = (t) => Math.floor((t - a) / (b - a) * bins);
-    for (const e of Store.usgs) { const i = binOf(e.time); if (i >= 0 && i < bins) cu[i] += 1; }
-    for (const e of Store.list) { const i = binOf(e.time); if (i >= 0 && i < bins) { cj[i] += 1; mj[i] = Math.max(mj[i], e.maxi || 0); } }
+    const arch = Archive.active;
+    // 過去の大地震のときは、その期間の地震だけを数える
+    for (const e of arch ? Archive.events : Store.usgs) { const i = binOf(e.time); if (i >= 0 && i < bins) cu[i] += 1; }
+    if (!arch) for (const e of Store.list) { const i = binOf(e.time); if (i >= 0 && i < bins) { cj[i] += 1; mj[i] = Math.max(mj[i], e.maxi || 0); } }
     const maxU = Math.max(1, ...cu), maxJ = Math.max(1, ...cj);
     const bw = w / bins;
     // 背景
     g.fillStyle = 'rgba(150,185,255,0.04)';
     g.fillRect(0, 0, w, ch);
     // 過去の震源（USGS）
-    g.fillStyle = 'rgba(110,150,255,0.42)';
+    g.fillStyle = arch ? 'rgba(255,150,90,0.6)' : 'rgba(110,150,255,0.42)';
     for (let i = 0; i < bins; i++) if (cu[i]) { const bh = Math.max(1.5, Math.sqrt(cu[i] / maxU) * (ch - 4)); g.fillRect(i * bw + 0.5, ch - bh, Math.max(1, bw - 1), bh); }
     // 最近の地震（気象庁）
     for (let i = 0; i < bins; i++) if (cj[i]) {
@@ -2377,8 +2419,14 @@ const Timeline = {
       g.fillStyle = 'rgba(3,6,13,0.55)';
       g.fillRect(x, 0, w - x, ch);
     }
+    // 本震・前震の位置
+    if (arch) for (const k of Archive.keyEvents) {
+      const kx = (k.t - a) / (b - a) * w;
+      g.fillStyle = k.main ? '#fff' : 'rgba(255,255,255,0.7)';
+      g.beginPath(); g.moveTo(kx, 6); g.lineTo(kx - 4.5, 0); g.lineTo(kx + 4.5, 0); g.fill();
+    }
     // 選択中の地震
-    if (State.selected && State.selected.time >= a) {
+    if (!arch && State.selected && State.selected.time >= a) {
       const sx = (State.selected.time - a) / (b - a) * w;
       g.fillStyle = '#fff';
       g.beginPath(); g.moveTo(sx, 0); g.lineTo(sx - 4, -0.5 + 6); g.lineTo(sx + 4, 5.5); g.fill();
@@ -2388,7 +2436,7 @@ const Timeline = {
     g.font = '10px ui-monospace, Menlo, monospace';
     g.textBaseline = 'top';
     const span = b - a;
-    const ticks = span <= 864e5 * 1.01 ? tickHours(a, b, 3) : span <= 31 * 864e5 ? tickDays(a, b, span <= 8 * 864e5 ? 1 : 5) : tickYears(a, b, span <= 1.1 * YEAR);
+    const ticks = span <= 864e5 * 1.01 ? tickHours(a, b, 3) : span <= 45 * 864e5 ? tickDays(a, b, span <= 8 * 864e5 ? 1 : 5) : tickYears(a, b, span <= 1.1 * YEAR);
     g.textAlign = 'center';
     for (const [t, lab] of ticks) {
       const tx = (t - a) / (b - a) * w;
@@ -2397,9 +2445,16 @@ const Timeline = {
       g.fillText(lab, tx, ch + 3);
     }
     // カーソル
-    g.fillStyle = this.live ? '#ff5d57' : '#5ec8ff';
+    g.fillStyle = this.live ? '#ff5d57' : arch ? '#ffb27a' : '#5ec8ff';
     g.fillRect(Math.min(x, w - 2), 0, 2, ch);
     const info = $('tl-info');
+    if (arch) {
+      const nA = Archive.events.filter((e) => e.time >= a && e.time <= this.T).length;
+      const days = (this.T - arch.main.t) / 864e5;
+      const rel = Math.abs(days) < 1 ? `本震の${days < 0 ? Math.round(-days * 24) + '時間前' : Math.round(days * 24) + '時間後'}` : `本震の${Math.round(Math.abs(days))}日${days < 0 ? '前' : '後'}`;
+      info.innerHTML = `<b>${fmtClock(this.T).slice(0, 16)}</b>　${esc(arch.name)}（${rel}）・ 表示中 ${nA.toLocaleString()} 個`;
+      return;
+    }
     const nU = Store.usgs.filter((e) => e.time >= a && e.time <= this.T).length;
     const nJ = Store.list.filter((e) => e.time >= a && e.time <= this.T && e.hasHypo).length;
     info.innerHTML = `<b>${this.live ? '現在' : fmtClock(this.T).slice(0, 16)}</b>　表示中：過去の震源 ${nU.toLocaleString()} ・ 最近の地震 ${nJ}`;
@@ -2687,6 +2742,7 @@ const Section = {
       if (ang < -0.003 || ang > this.ang + 0.003) return;
       out.push({ kind, e, s: ang * R_EARTH, depth: e.depth ?? 10 });
     };
+    if (Archive.active) { if (S.showUsgs) for (const e of archLayer.items) test(e, 'usgs'); return out; }
     if (S.showUsgs) for (const e of usgsLayer.items) test(e, 'usgs');
     if (S.showJma) for (const e of jmaLayer.items) test(e, 'jma');
     return out;
@@ -2702,7 +2758,7 @@ const Section = {
     const cv = $('sp-canvas');
     const w = cv.clientWidth, h = cv.clientHeight;
     if (!w || !h) return;
-    const key = [w, h, timeU.uT0.value, Math.round(timeU.uT.value / 60), S.secWidth, S.showUsgs, S.showJma, usgsLayer.items.length, jmaLayer.items.length, this.a.lat, this.a.lon, this.b.lat, this.b.lon, State.selected?.id].join('|');
+    const key = [w, h, timeU.uT0.value, Math.round(timeU.uT.value / 60), S.secWidth, S.showUsgs, S.showJma, usgsLayer.items.length, jmaLayer.items.length, Archive.active?.key, archLayer.items.length, this.a.lat, this.a.lon, this.b.lat, this.b.lon, State.selected?.id].join('|');
     if (!force && key === this.drawKey) return;
     this.drawKey = key;
     const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -2844,6 +2900,224 @@ const Section = {
   },
 };
 
+// ====== 過去の大地震 ======
+// 規模・最大震度・発生時刻は気象庁、震源の位置と深さ・前後の地震は USGS のデータ
+const ARCHIVE = [
+  { key: 'aomori2025', name: '青森県東方沖の地震', jst: '2025年12月8日 23時15分', mj: 7.5, maxi: 8, desc: '八戸市で震度6強。津波警報が出され、初めて「北海道・三陸沖後発地震注意情報」が発表された。',
+    main: { t: '2025-12-08T14:15:09.896Z', lat: 40.998, lon: 142.184, depth: 40.7 }, box: [39.8, 42.3, 141.0, 143.8] },
+  { key: 'hyuganada2024', name: '日向灘の地震', jst: '2024年8月8日 16時42分', mj: 7.1, maxi: 7, desc: '宮崎県で震度6弱。初めて「南海トラフ地震臨時情報（巨大地震注意）」が発表された。',
+    main: { t: '2024-08-08T07:42:55.206Z', lat: 31.760, lon: 131.502, depth: 24 }, box: [30.8, 32.6, 130.8, 132.6] },
+  { key: 'noto2024', name: '令和6年能登半島地震', jst: '2024年1月1日 16時10分', mj: 7.6, maxi: 9, desc: '能登半島で震度7。海岸の地盤が大きく隆起し、大津波警報も発表された。',
+    main: { t: '2024-01-01T07:10:09.476Z', lat: 37.487, lon: 137.271, depth: 10 }, box: [36.4, 38.4, 135.8, 138.8] },
+  { key: 'fukushima2022', name: '福島県沖の地震', jst: '2022年3月16日 23時36分', mj: 7.4, maxi: 8, desc: '宮城県と福島県で震度6強。東北新幹線が脱線した。',
+    main: { t: '2022-03-16T14:36:30.997Z', lat: 37.713, lon: 141.579, depth: 41 }, box: [36.8, 38.6, 140.6, 142.8] },
+  { key: 'iburi2018', name: '北海道胆振東部地震', jst: '2018年9月6日 3時07分', mj: 6.7, maxi: 9, desc: '厚真町で震度7。大規模な土砂崩れが起き、北海道のほぼ全域が停電した。',
+    main: { t: '2018-09-05T18:07:59.150Z', lat: 42.686, lon: 141.929, depth: 35 }, box: [41.8, 43.6, 141.0, 143.0] },
+  { key: 'kumamoto2016', name: '熊本地震', jst: '2016年4月16日 1時25分（本震）', mj: 7.3, maxi: 9, desc: '4月14日の M6.5 と16日の M7.3 で、2回震度7を観測した。',
+    main: { t: '2016-04-15T16:25:06.220Z', lat: 32.791, lon: 130.754, depth: 10 },
+    extra: [{ t: '2016-04-14T12:26:35.730Z', lat: 32.788, lon: 130.704, depth: 9, mj: 6.5, maxi: 9, label: '前震' }], box: [31.8, 33.8, 129.8, 131.9] },
+  { key: 'tohoku2011', name: '東北地方太平洋沖地震', sub: '東日本大震災', jst: '2011年3月11日 14時46分', mj: 9.0, maxi: 9, desc: '日本の観測史上最大の地震。巨大な津波が太平洋沿岸を襲った。',
+    main: { t: '2011-03-11T05:46:24.120Z', lat: 38.297, lon: 142.373, depth: 29 },
+    extra: [{ t: '2011-03-09T02:45:20.330Z', lat: 38.435, lon: 142.842, depth: 32, mj: 7.3, maxi: 5, label: '前震' }], box: [34.5, 41.8, 139.5, 146.5], before: 3 },
+  { key: 'iwate2008', name: '岩手・宮城内陸地震', jst: '2008年6月14日 8時43分', mj: 7.2, maxi: 8, desc: '内陸で起きた地震。大規模な地すべりが起きた。',
+    main: { t: '2008-06-13T23:43:45.360Z', lat: 39.030, lon: 140.881, depth: 8 }, box: [38.5, 39.6, 140.3, 141.5] },
+  { key: 'chuetsu2004', name: '新潟県中越地震', jst: '2004年10月23日 17時56分', mj: 6.8, maxi: 9, desc: '震度計で初めて震度7を観測した地震。山あいで土砂災害が多く起きた。',
+    main: { t: '2004-10-23T08:56:00.860Z', lat: 37.226, lon: 138.779, depth: 16 }, box: [36.7, 37.9, 138.2, 139.6] },
+  { key: 'tokachi2003', name: '十勝沖地震', jst: '2003年9月26日 4時50分', mj: 8.0, maxi: 7, desc: '太平洋プレートの沈み込みにともなう海溝型の巨大地震。',
+    main: { t: '2003-09-25T19:50:06.360Z', lat: 41.815, lon: 143.910, depth: 27 }, box: [40.8, 43.0, 142.8, 145.6] },
+  { key: 'kobe1995', name: '兵庫県南部地震', sub: '阪神・淡路大震災', jst: '1995年1月17日 5時46分', mj: 7.3, maxi: 9, desc: '都市の直下で起きた地震。震度7が初めて適用された。',
+    main: { t: '1995-01-16T20:46:52.120Z', lat: 34.583, lon: 135.018, depth: 22 }, box: [34.0, 35.2, 134.3, 135.8] },
+].map((a) => ({ ...a, main: { ...a.main, t: Date.parse(a.main.t) }, extra: (a.extra || []).map((x) => ({ ...x, t: Date.parse(x.t) })) }));
+
+const archLayer = makePointLayer('usgs');
+for (const o of archLayer.objs) o.visible = false;
+const archSize = (e) => usgsSize(e) * 1.3;
+
+const Archive = {
+  active: null, events: [], cache: new Map(), keyEvents: [], lastT: 0, holding: false, loading: null,
+  init() {
+    $('archive-list').onclick = (e) => { const b = e.target.closest('[data-akey]'); if (b) this.open(b.dataset.akey); };
+    document.querySelectorAll('[data-ptab]').forEach((b) => b.onclick = () => setListTab(b.dataset.ptab));
+    this.renderList();
+  },
+  renderList() {
+    $('archive-list').innerHTML = ARCHIVE.map((a) => `
+      <button class="q-item${this.active === a ? ' arch-on' : ''}" data-akey="${a.key}">
+        ${badgeHTML(a.maxi)}
+        <div style="min-width:0"><div class="q-name">${esc(a.name)}</div>${a.sub ? `<div class="q-sub">${esc(a.sub)}</div>` : ''}<div class="q-meta num">${esc(a.jst.replace(/（.*）/, ''))} · M${a.mj.toFixed(1)}</div></div>
+        <div class="q-ago">${new Date(a.main.t).getUTCFullYear()}</div></button>`).join('');
+  },
+  bounds() { const a = this.active; return [a.main.t - (a.before ?? 2) * 864e5, a.main.t + (a.after ?? 30) * 864e5]; },
+  async fetchEvents(a) {
+    if (this.cache.has(a.key)) return this.cache.get(a.key);
+    const [t0, t1] = this.bounds();
+    const qs = new URLSearchParams({
+      format: 'csv', starttime: new Date(t0).toISOString().slice(0, 19), endtime: new Date(t1).toISOString().slice(0, 19),
+      minlatitude: a.box[0], maxlatitude: a.box[1], minlongitude: a.box[2], maxlongitude: a.box[3], minmagnitude: 2.5, orderby: 'time-asc',
+    });
+    const r = await fetch(`${USGS_Q}?${qs}`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const rows = parseUsgsCsv(await r.text());
+    this.cache.set(a.key, rows);
+    return rows;
+  },
+  async open(key) {
+    const a = ARCHIVE.find((x) => x.key === key);
+    if (!a) return;
+    if (State.eew) { toast('緊急地震速報の表示中は開けません', 'warn'); return; }
+    if (!this.active) this.saved = { t: controls.target.clone(), p: camera.position.clone() };
+    selectEvent(null);
+    stopReplay();
+    this.active = a;
+    this.renderList();
+    this.loading = a.key;
+    renderArchiveDetail(a, null);
+    let events;
+    try { events = await this.fetchEvents(a); }
+    catch (e) { toast('過去の震源データを取得できませんでした', 'bad'); if (this.active === a) this.close(); return; }
+    if (this.active !== a) return;
+    this.loading = null;
+    // 本震・前震と同じ地震は点の層から外す（目印で別に表示する）
+    const keys = [a.main, ...a.extra];
+    this.events = events.filter((e) => !keys.some((k) => Math.abs(e.time - k.t) < 60e3 && kmBetween(e.lat, e.lon, k.lat, k.lon) < 80));
+    setPointData(archLayer, this.events, (e, c) => depthColor(e.depth, c), archSize);
+    this.keyEvents = [...a.extra.map((x) => ({ ...x, name: `${a.name}の${x.label}` })), { ...a.main, mj: a.mj, maxi: a.maxi, name: a.name, main: true }].sort((p, q) => p.t - q.t);
+    applyVisibility();
+    $('timeline').classList.add('arch');
+    renderArchiveDetail(a, this.events);
+    // 範囲の大きさに合わせてカメラを寄せる
+    const span = Math.max((a.box[1] - a.box[0]) * 111, (a.box[3] - a.box[2]) * 111 * Math.cos(a.main.lat * DEG));
+    flyTo({ target: toLocal(a.main.lat, a.main.lon, -a.main.depth * S.depthExag * 0.4), dist: clamp(span * 1.55, 650, 4200), polar: 52, duration: 1.8 });
+    setMarker(latestMarker, null);
+    setMarker(focusMarker, null);
+    Timeline.T = this.bounds()[0];
+    Timeline.live = false; Timeline.playing = false;
+    this.lastT = Timeline.T;
+    Timeline.syncUI();
+    setTimeout(() => { if (this.active === a) { Timeline.playing = true; Timeline.syncUI(); } }, 1900);
+    if (IS_MOBILE) setMobileTab('map', true);
+  },
+  close() {
+    if (!this.active) return;
+    this.active = null; this.events = []; this.keyEvents = []; this.holding = false;
+    for (const o of archLayer.objs) o.visible = false;
+    $('timeline').classList.remove('arch');
+    stopReplay();
+    renderDetail(null);
+    this.renderList();
+    applyVisibility();
+    Timeline.goLive();
+    setMarker(focusMarker, null);
+    const latest = Store.list.find((e) => !e.foreign);
+    setMarker(latestMarker, latest || null);
+    if (this.saved) { flyToState(this.saved.t, this.saved.p, 1.5); this.saved = null; }
+  },
+  // タイムラインが本震・前震の時刻を過ぎたら一時停止して、揺れの広がりを見せる
+  update() {
+    if (!this.active || this.loading) return;
+    const T = Timeline.T;
+    if (this.holding && !State.replay) {
+      this.holding = false;
+      if (this.resumeAfterHold) { Timeline.playing = true; Timeline.syncUI(); }
+    }
+    for (const k of this.keyEvents) {
+      if (this.lastT < k.t && T >= k.t && Timeline.playing) {
+        Timeline.T = k.t;
+        Timeline.playing = false;
+        this.resumeAfterHold = true;
+        this.holding = true;
+        const ev = { hasHypo: true, inRegion: true, lat: k.lat, lon: k.lon, depth: k.depth, mag: k.mj, maxi: k.maxi, name: k.name, time: k.t };
+        setMarker(focusMarker, ev);
+        const maxR = k.mj >= 8.5 ? 1300 : k.mj >= 7.5 ? 800 : k.mj >= 6.8 ? 450 : 300;
+        const speed = (maxR / VS) / 6;
+        const now = performance.now();
+        State.replay = { ev, start: now, speed, total: maxR / VS + 1 };
+        addWave({ key: 'replay', lat: k.lat, lon: k.lon, depth: k.depth, start: now, speed, maxR });
+        $('replay-hud').classList.remove('hidden');
+        Timeline.syncUI();
+        break;
+      }
+    }
+    // 本震の目印は、その時刻を過ぎていれば表示しておく
+    if (!this.holding) {
+      const shown = [...this.keyEvents].reverse().find((k) => k.t <= Timeline.T);
+      const cur = focusMarker.userData.ev;
+      if (shown && (!cur || cur.time !== shown.t)) setMarker(focusMarker, { hasHypo: true, inRegion: true, lat: shown.lat, lon: shown.lon, depth: shown.depth, mag: shown.mj, maxi: shown.maxi, name: shown.name, time: shown.t });
+      if (!shown && cur) setMarker(focusMarker, null);
+    }
+    this.lastT = Timeline.T;
+  },
+  replay() {
+    if (!this.active) return;
+    stopReplay();
+    this.holding = false;
+    Timeline.T = this.bounds()[0];
+    this.lastT = Timeline.T;
+    Timeline.live = false; Timeline.playing = true;
+    setMarker(focusMarker, null);
+    Timeline.syncUI();
+  },
+};
+function setListTab(tab) {
+  document.querySelectorAll('[data-ptab]').forEach((b) => { const on = b.dataset.ptab === tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+  $('recent-pane').classList.toggle('hidden', tab !== 'recent');
+  $('archive-pane').classList.toggle('hidden', tab !== 'archive');
+  $('list-count').classList.toggle('hidden', tab !== 'recent');
+}
+function renderArchiveDetail(a, events) {
+  const panel = $('detail-panel');
+  panel.classList.remove('hidden');
+  const n = events ? events.length : null;
+  const days = (a.after ?? 30);
+  $('detail-body').innerHTML = `
+    <div class="d-head">${badgeHTML(a.maxi, 'big')}<div><div class="d-kind" style="color:#ffb27a">過去の大地震 ・ 最大${SHINDO[a.maxi].label}</div><div class="d-name">${esc(a.name)}</div><div class="d-time">${a.sub ? esc(a.sub) + ' ・ ' : ''}${esc(a.jst)}</div></div>
+      <button class="icon-btn" id="d-close" aria-label="閉じる"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="d-grid">
+      <div class="d-cell"><label>規模（気象庁）</label><b class="num">M${a.mj.toFixed(1)}</b></div>
+      <div class="d-cell"><label>深さ（USGS）</label><b class="num">${Math.round(a.main.depth)}<small>km</small></b></div>
+      <div class="d-cell"><label>前後の地震</label><b class="num">${n == null ? '…' : n.toLocaleString() + '<small>個</small>'}</b></div>
+      <div class="d-cell"><label>表示する期間</label><b class="num" style="font-size:13px">前${a.before ?? 2}日〜後${days}日</b></div>
+    </div>
+    <div class="d-note">${esc(a.desc)}</div>
+    <div class="d-sec"><h4>1日ごとの地震の数</h4><canvas class="d-chart" id="d-chart"></canvas><div class="d-cap">USGS の震源（日本付近はおおむね M4 以上）。本震のあと、日を追って減っていく様子がわかります。</div></div>
+    <div class="d-actions">
+      <button class="btn primary grow" id="d-replay"><svg class="ic" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;width:14px;height:14px"><path d="M8 5.5v13l10.5-6.5z"/></svg>最初から再生</button>
+      <button class="btn" id="d-exit">終了</button>
+    </div>`;
+  $('d-close').onclick = $('d-exit').onclick = () => Archive.close();
+  $('d-replay').onclick = () => Archive.replay();
+  if (events) drawArchiveChart(a, events);
+}
+function drawArchiveChart(a, events) {
+  const cv = $('d-chart');
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h) return;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const [t0, t1] = Archive.bounds();
+  const nd = Math.round((t1 - t0) / 864e5);
+  const cnt = new Array(nd).fill(0);
+  for (const e of events) { const i = Math.floor((e.time - t0) / 864e5); if (i >= 0 && i < nd) cnt[i]++; }
+  const mx = Math.max(1, ...cnt), bw = w / nd, ch = h - 12;
+  g.fillStyle = 'rgba(150,185,255,0.06)'; g.fillRect(0, 0, w, ch);
+  const mainDay = Math.floor((a.main.t - t0) / 864e5);
+  cnt.forEach((c, i) => {
+    if (!c) return;
+    const bh = Math.max(1.5, (c / mx) * (ch - 4));
+    g.fillStyle = i < mainDay ? 'rgba(120,160,255,0.75)' : 'rgba(255,150,90,0.85)';
+    g.fillRect(i * bw + 0.5, ch - bh, Math.max(1, bw - 1), bh);
+  });
+  g.fillStyle = '#fff';
+  const mx0 = (a.main.t - t0) / (t1 - t0) * w;
+  g.fillRect(mx0, 0, 1.5, ch);
+  g.font = '9.5px ui-monospace, Menlo, monospace'; g.fillStyle = 'rgba(160,175,200,0.8)'; g.textBaseline = 'top';
+  g.textAlign = 'left'; g.fillText(`最大 ${mx}個/日`, 3, 2);
+  g.textAlign = 'center'; g.fillText('本震', clamp(mx0, 14, w - 14), ch + 1);
+  g.textAlign = 'right'; g.fillText(`${nd}日`, w - 2, ch + 1);
+}
+
 // ====== 当たり判定・ツールチップ ======
 const _v = new THREE.Vector3();
 function pickAt(cx, cy) {
@@ -2863,6 +3137,13 @@ function pickAt(cx, cy) {
   }
   // 断面を表示しているときは、断面に入る震源だけを選べるようにする
   const inSec = (e) => !Section.active || Section.contains(e);
+  if (Archive.active) {
+    if (S.showUsgs) {
+      const arr = layerLocal(archLayer), items = archLayer.items;
+      for (let i = 0; i < items.length; i++) { const t = (items[i].time - T_REF) / 1000; if (t < T0 || t > T || !inSec(items[i])) continue; test(arr, i, 2, () => ({ kind: 'usgs', e: items[i], i, arch: true })); }
+    }
+    return best;
+  }
   if (S.showJma) {
     const arr = layerLocal(jmaLayer);
     jmaLayer.items.forEach((e, i) => { const t = (e.time - T_REF) / 1000; if (t >= T0 && t <= T && inSec(e)) test(arr, i, 5, () => ({ kind: 'jma', e, i })); });
@@ -2924,7 +3205,8 @@ function updateHover() {
   if (Section.picking) { showTooltip(null); Section.onMove(raySurface(pointer.x, pointer.y)); return; }
   const hit = pickAt(pointer.x, pointer.y);
   jmaLayer.u.uHover.value = hit?.kind === 'jma' ? hit.i : -1;
-  usgsLayer.u.uHover.value = hit?.kind === 'usgs' ? hit.i : -1;
+  usgsLayer.u.uHover.value = hit?.kind === 'usgs' && !hit.arch ? hit.i : -1;
+  archLayer.u.uHover.value = hit?.arch ? hit.i : -1;
   renderer.domElement.style.cursor = hit?.kind === 'jma' ? 'pointer' : '';
   showTooltip(hit, pointer.x, pointer.y);
 }
@@ -2982,7 +3264,7 @@ function announce(ev) {
 // 操作していないときだけ、新しい地震の震源へ視点を移して揺れを再生する
 function focusIfIdle(ev) {
   const idle = performance.now() - State.lastInteract > 25000;
-  if (S.autoFocus && idle && !Timeline.playing && !State.eew && ev.hasHypo && ev.inRegion && (ev.maxi || 0) >= Math.min(S.notifyMin, 3)) selectEvent(ev);
+  if (S.autoFocus && idle && !Timeline.playing && !State.eew && !Archive.active && ev.hasHypo && ev.inRegion && (ev.maxi || 0) >= Math.min(S.notifyMin, 3)) selectEvent(ev);
 }
 
 // ====== リアルタイム受信（P2P地震情報 WebSocket） ======
@@ -3108,6 +3390,7 @@ function handleEEW(m, demo = false) {
   let maxTo = 0, maxFrom = 0;
   for (const a of m.areas || []) { maxFrom = Math.max(maxFrom, shindoP2P(a.scaleFrom)); maxTo = Math.max(maxTo, a.scaleTo === 99 ? shindoP2P(a.scaleFrom) : shindoP2P(a.scaleTo)); }
   const isNewEvent = !State.eew || State.eew.id !== evId;
+  if (Archive.active) Archive.close();
   State.eew = { id: evId, demo, origin, lat: hasHypo ? +h.latitude : null, lon: hasHypo ? +h.longitude : null, depth: h.depth >= 0 ? +h.depth : 10, mag: h.magnitude > 0 ? +h.magnitude : null, name: h.name || '震源を調査中', maxi: Math.max(maxTo, maxFrom), areas: m.areas || [], serial: m.issue?.serial, until: origin + 180e3 };
   const E = State.eew;
   const box = $('eew');
@@ -3366,6 +3649,7 @@ function frame(now) {
   timeU.uClock.value = now / 1000;
   terrainU.uPrefFade.value = lerp(terrainU.uPrefFade.value, prefFadeTarget, Math.min(1, dt * 4));
   Timeline.update(Math.min(rawDt, 0.5));
+  Archive.update();
   Section.update(dt);
   if (Section.active || cutU.uCut.value > 0.5 || syncLabelCut.was) { syncLabelCut(); syncLabelCut.was = Section.active; }
   // タイムラインで過去を表示しているときは、その時点より後の地震の目印を隠す
@@ -3429,6 +3713,7 @@ async function main() {
   bindSettings();
   Timeline.init();
   Section.init();
+  Archive.init();
   applyVisibility();
   applyExaggeration();
   if (S.meLat != null) setMe(S.meLat, S.meLon, S.me === 'geo' ? '現在地' : PREFS.find((p) => String(p.code) === S.me)?.cap);
