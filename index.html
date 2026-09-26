@@ -1,0 +1,2901 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>地震3Dモニター</title>
+<meta name="description" content="日本周辺の地震を立体で見るリアルタイム地震モニター。震源の深さ、沈み込むプレート、揺れの広がりを3Dで表示します。">
+<meta name="theme-color" content="#03060d">
+<!--
+  地震3Dモニター
+  Copyright (c) 2026 たぬ — MIT License
+  Built with Claude (Opus 5.5)
+-->
+<style>
+:root {
+  --bg: #03060d;
+  --glass: rgba(9, 14, 26, 0.70);
+  --glass-2: rgba(13, 20, 36, 0.90);
+  --line: rgba(150, 185, 255, 0.13);
+  --line-2: rgba(150, 185, 255, 0.26);
+  --text: #e9eff9;
+  --sub: #9aabc6;
+  --dim: #66758f;
+  --accent: #5ec8ff;
+  --accent-2: #8f7dff;
+  --warn: #ffb020;
+  --danger: #ff3b30;
+  --ok: #3ddc97;
+  --radius: 14px;
+  --font: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --list-w: 318px;
+  --gap: 14px;
+  --tl-bottom: calc(var(--gap) + 12px);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
+body { font-size: 13px; line-height: 1.5; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hidden { display: none !important; }
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+svg.ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+#stage { position: fixed; inset: 0; }
+#stage canvas { display: block; outline: none; touch-action: none; }
+.labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse 120% 90% at 50% 42%, transparent 58%, rgba(0, 2, 8, 0.62) 100%); }
+
+.panel { position: fixed; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); backdrop-filter: blur(16px) saturate(1.35); -webkit-backdrop-filter: blur(16px) saturate(1.35); box-shadow: 0 14px 44px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.04); }
+
+/* ---- 上部バー ---- */
+#topbar { position: fixed; top: var(--gap); left: var(--gap); right: var(--gap); height: 46px; display: flex; align-items: center; gap: 12px; pointer-events: none; z-index: 20; }
+#topbar > * { pointer-events: auto; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 10px; height: 46px; }
+.brand .logo { width: 30px; height: 30px; }
+.brand-title { font-weight: 700; font-size: 15px; letter-spacing: 0.04em; line-height: 1.15; }
+.brand-sub { font-size: 9.5px; letter-spacing: 0.32em; color: var(--sub); line-height: 1.2; }
+.latest-chip { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px 0 8px; min-width: 0; text-align: left; transition: border-color .2s, background .2s; }
+.latest-chip:hover { border-color: var(--line-2); background: var(--glass-2); }
+.latest-chip .lc-tag { font-size: 10px; letter-spacing: .12em; color: var(--accent); font-weight: 700; }
+.latest-chip .lc-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
+.latest-chip .lc-meta { color: var(--sub); font-size: 12px; white-space: nowrap; }
+.top-spacer { flex: 1; }
+.top-right { display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 6px 0 14px; }
+.clock { font-family: var(--mono); font-size: 13px; color: var(--text); letter-spacing: 0.02em; }
+.clock small { color: var(--dim); font-size: 10px; margin-left: 4px; }
+.conn { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--sub); padding: 0 8px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); height: 24px; }
+.conn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+.conn.ok .dot { background: var(--ok); box-shadow: 0 0 8px var(--ok); animation: pulse-dot 2.4s ease-in-out infinite; }
+.conn.bad .dot { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+@keyframes pulse-dot { 50% { opacity: 0.45; } }
+.icon-btn { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: var(--sub); transition: background .15s, color .15s; }
+.icon-btn:hover { background: rgba(150, 185, 255, 0.10); color: var(--text); }
+.icon-btn.on { color: var(--accent); background: rgba(94, 200, 255, 0.12); }
+
+/* ---- 地震一覧 ---- */
+#list-panel { top: calc(var(--gap) + 58px); left: var(--gap); bottom: var(--gap); width: var(--list-w); display: flex; flex-direction: column; z-index: 10; overflow: hidden; }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 16px 8px; }
+.ph-title { font-weight: 700; font-size: 14px; letter-spacing: .03em; }
+.ph-sub { font-weight: 400; font-size: 11px; color: var(--dim); margin-left: 6px; }
+.ph-count { font-size: 11px; color: var(--sub); }
+.chips { display: flex; gap: 6px; padding: 0 14px 10px; flex-wrap: wrap; }
+.chip { font-size: 11.5px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--sub); transition: all .15s; }
+.chip:hover { color: var(--text); border-color: var(--line-2); }
+.chip.on { background: rgba(94, 200, 255, 0.14); border-color: rgba(94, 200, 255, 0.45); color: #d8f1ff; }
+.quake-list { flex: 1; overflow-y: auto; padding: 2px 8px 10px; scrollbar-width: thin; scrollbar-color: rgba(150,185,255,.2) transparent; }
+.quake-list::-webkit-scrollbar { width: 6px; }
+.quake-list::-webkit-scrollbar-thumb { background: rgba(150,185,255,.18); border-radius: 3px; }
+.q-item { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; padding: 8px 8px; border-radius: 10px; cursor: pointer; transition: background .15s; position: relative; width: 100%; text-align: left; }
+.q-item:hover { background: rgba(150, 185, 255, 0.07); }
+.q-item.sel { background: rgba(94, 200, 255, 0.13); box-shadow: inset 0 0 0 1px rgba(94, 200, 255, 0.35); }
+.q-item.fresh::after { content: ""; position: absolute; left: 2px; top: 12px; bottom: 12px; width: 3px; border-radius: 2px; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.q-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-meta { font-size: 11.5px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-ago { font-size: 10.5px; color: var(--dim); align-self: start; padding-top: 2px; white-space: nowrap; }
+.q-mine { font-size: 10.5px; color: #7dffc4; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-item.mine { background: rgba(125, 255, 196, 0.05); }
+.q-empty { color: var(--dim); text-align: center; padding: 28px 10px; font-size: 12px; }
+.badge { width: 40px; height: 40px; border-radius: 9px; display: grid; place-items: center; font-weight: 800; font-size: 17px; letter-spacing: -0.02em; color: #fff; line-height: 1; box-shadow: 0 0 0 1px rgba(255,255,255,.12) inset, 0 4px 14px rgba(0,0,0,.35); }
+.badge.small-txt { font-size: 13px; }
+.badge.dark { color: #10131a; }
+.badge.none { background: #2a3446 !important; color: var(--sub); font-size: 12px; }
+.badge.big { width: 58px; height: 58px; font-size: 25px; border-radius: 12px; }
+.badge.big.small-txt { font-size: 19px; }
+
+/* ---- 詳細パネル ---- */
+#detail-panel { top: calc(var(--gap) + 58px); right: var(--gap); width: 336px; max-height: calc(100% - 58px - var(--tl-bottom) - 104px - 44px - var(--gap) * 4); display: flex; flex-direction: column; z-index: 12; overflow: hidden; animation: slide-in .28s cubic-bezier(.2,.8,.2,1); }
+@keyframes slide-in { from { transform: translateX(20px); opacity: 0; } }
+.d-scroll { overflow-y: auto; padding: 16px; scrollbar-width: thin; scrollbar-color: rgba(150,185,255,.2) transparent; }
+.d-head { display: grid; grid-template-columns: 58px 1fr 30px; gap: 12px; align-items: center; }
+.d-kind { font-size: 10.5px; letter-spacing: .1em; color: var(--accent); font-weight: 700; }
+.d-name { font-size: 17px; font-weight: 700; line-height: 1.3; }
+.d-time { font-size: 12px; color: var(--sub); margin-top: 2px; }
+.d-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 14px 0 10px; }
+.d-cell { background: rgba(150, 185, 255, 0.05); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.d-cell label { display: block; font-size: 10.5px; color: var(--dim); letter-spacing: .04em; }
+.d-cell b { font-size: 16px; font-weight: 700; }
+.d-cell .ls { display: none; }
+.d-cell b small { font-size: 11px; font-weight: 500; color: var(--sub); margin-left: 2px; }
+.d-note { font-size: 12px; color: var(--sub); background: rgba(94, 200, 255, 0.07); border-radius: 9px; padding: 8px 10px; margin: 8px 0; border: 1px solid rgba(94, 200, 255, 0.14); }
+.d-note.warn { background: rgba(255, 176, 32, 0.1); border-color: rgba(255, 176, 32, 0.3); color: #ffd79a; }
+.d-sec { margin-top: 14px; }
+.d-sec h4 { margin: 0 0 7px; font-size: 11.5px; color: var(--sub); font-weight: 600; letter-spacing: .05em; }
+.pref-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.pref-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; padding: 3px 8px 3px 4px; border-radius: 7px; background: rgba(150,185,255,.06); border: 1px solid var(--line); }
+.pref-chip i { font-style: normal; font-weight: 800; font-size: 10.5px; min-width: 22px; height: 18px; border-radius: 4px; display: grid; place-items: center; color: #fff; padding: 0 3px; }
+.pref-chip i.dark { color: #111; }
+.st-list { display: flex; flex-direction: column; gap: 3px; }
+.st-row { display: grid; grid-template-columns: 30px 1fr; gap: 8px; align-items: center; font-size: 12px; }
+.st-row i { font-style: normal; font-weight: 800; font-size: 11px; height: 20px; border-radius: 5px; display: grid; place-items: center; color: #fff; }
+.st-row i.dark { color: #111; }
+.st-row span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-row span small { color: var(--dim); margin-left: 5px; }
+.d-actions { display: flex; gap: 8px; margin-top: 14px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 36px; padding: 0 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; border: 1px solid var(--line-2); background: rgba(150, 185, 255, 0.07); transition: all .15s; white-space: nowrap; }
+.btn:hover { background: rgba(150, 185, 255, 0.14); }
+.btn.primary { background: linear-gradient(135deg, rgba(94, 200, 255, 0.28), rgba(143, 125, 255, 0.28)); border-color: rgba(94, 200, 255, 0.5); color: #eaf7ff; }
+.btn.primary:hover { background: linear-gradient(135deg, rgba(94, 200, 255, 0.4), rgba(143, 125, 255, 0.4)); }
+.btn.danger { border-color: rgba(255, 59, 48, 0.5); background: rgba(255, 59, 48, 0.14); }
+.btn.grow { flex: 1; }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* ---- タイムライン ---- */
+#timeline { left: calc(var(--list-w) + var(--gap) * 2); right: var(--gap); bottom: var(--tl-bottom); height: 104px; display: grid; grid-template-columns: 56px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 4px; padding: 10px 14px 8px 8px; z-index: 10; }
+.tl-play { width: 48px; height: 48px; border-radius: 50%; align-self: center; justify-self: center; display: grid; place-items: center; background: linear-gradient(135deg, rgba(94, 200, 255, 0.25), rgba(143, 125, 255, 0.25)); border: 1px solid rgba(94, 200, 255, 0.45); color: #eaf7ff; transition: transform .15s, background .15s; }
+.tl-play:hover { transform: scale(1.06); }
+.tl-play svg { width: 20px; height: 20px; fill: currentColor; stroke: none; }
+.tl-body { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.tl-top { display: flex; align-items: center; gap: 10px; height: 28px; }
+.tl-ranges { display: flex; gap: 2px; background: rgba(150,185,255,.06); border-radius: 8px; padding: 2px; }
+.tl-ranges button { font-size: 11.5px; padding: 3px 9px; border-radius: 6px; color: var(--sub); }
+.tl-ranges button:hover { color: var(--text); }
+.tl-ranges button.on { background: rgba(94, 200, 255, 0.2); color: #e2f5ff; }
+.tl-ranges .rs { display: none; }
+.tl-info { flex: 1; min-width: 0; font-size: 11.5px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tl-info b { color: var(--text); font-family: var(--mono); font-weight: 600; }
+.tl-speed { font-size: 11px; color: var(--sub); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line); font-family: var(--mono); }
+.tl-live { font-size: 10.5px; font-weight: 800; letter-spacing: .12em; padding: 3px 9px; border-radius: 6px; color: var(--dim); border: 1px solid var(--line); }
+.tl-live.on { color: #ff5d57; border-color: rgba(255, 93, 87, 0.5); background: rgba(255, 59, 48, 0.12); }
+.tl-live.on::before { content: "● "; animation: pulse-dot 1.6s infinite; }
+#tl-canvas { flex: 1 1 0; width: 100%; height: 0; min-height: 0; cursor: pointer; display: block; touch-action: none; }
+
+/* ---- 凡例・視点 ---- */
+#legend { left: calc(var(--list-w) + var(--gap) * 2); bottom: calc(var(--tl-bottom) + var(--gap) + 104px); padding: 10px 14px; z-index: 9; display: flex; gap: 22px; align-items: flex-start; }
+.lg-block { display: flex; flex-direction: column; gap: 5px; }
+.lg-title { font-size: 10.5px; color: var(--sub); letter-spacing: .06em; }
+.lg-depth { width: 210px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #ff4a2e 0%, #ff9d1f 16.6%, #ffe14a 33.3%, #58ee8c 50%, #2fc6ff 66.6%, #4d6bff 83.3%, #b15cff 100%); }
+.lg-ticks { display: flex; justify-content: space-between; width: 210px; font-size: 9.5px; color: var(--dim); font-family: var(--mono); }
+.lg-shindo { display: flex; gap: 2px; }
+.lg-shindo span { width: 22px; height: 16px; border-radius: 3px; font-size: 9.5px; font-weight: 800; display: grid; place-items: center; color: #fff; }
+.lg-shindo span.dark { color: #111; }
+.lg-mag { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--dim); }
+.lg-mag i { display: inline-block; border-radius: 50%; background: rgba(200, 220, 255, 0.75); box-shadow: 0 0 6px rgba(160, 200, 255, 0.6); }
+#viewbar { right: var(--gap); bottom: calc(var(--tl-bottom) + var(--gap) + 104px); padding: 5px; z-index: 11; display: flex; gap: 2px; align-items: center; }
+#viewbar button { height: 32px; padding: 0 10px; border-radius: 9px; font-size: 12px; color: var(--sub); display: inline-flex; align-items: center; gap: 5px; transition: background .15s, color .15s; }
+#viewbar button:hover { background: rgba(150, 185, 255, 0.1); color: var(--text); }
+#viewbar button.on { color: var(--accent); background: rgba(94, 200, 255, 0.12); }
+#viewbar .sep { width: 1px; height: 20px; background: var(--line); margin: 0 3px; }
+#layers-panel { right: var(--gap); bottom: calc(var(--tl-bottom) + var(--gap) * 2 + 104px + 44px); width: 300px; padding: 14px 16px; z-index: 13; animation: pop .2s ease-out; }
+@keyframes pop { from { transform: translateY(8px); opacity: 0; } }
+.lp-title { font-size: 12px; font-weight: 700; color: var(--sub); letter-spacing: .08em; margin-bottom: 8px; }
+.tg { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 12.5px; cursor: pointer; }
+.tg input { display: none; }
+.tg .sw { width: 32px; height: 18px; border-radius: 9px; background: rgba(150, 185, 255, 0.18); position: relative; transition: background .2s; flex: none; }
+.tg .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #c8d4e8; transition: transform .2s; }
+.tg input:checked + .sw { background: rgba(94, 200, 255, 0.65); }
+.tg input:checked + .sw::after { transform: translateX(14px); background: #fff; }
+.tg small { display: block; color: var(--dim); font-size: 10.5px; }
+.sl { padding: 6px 0; font-size: 12.5px; }
+.sl-head { display: flex; justify-content: space-between; }
+.sl-head b { font-family: var(--mono); color: var(--accent); font-weight: 600; }
+.sl input[type=range] { width: 100%; accent-color: var(--accent); margin: 6px 0 0; }
+.lp-sep { height: 1px; background: var(--line); margin: 8px 0; }
+
+/* ---- 緊急地震速報 ---- */
+#eew { position: fixed; top: calc(var(--gap) + 58px); left: 50%; transform: translateX(-50%); width: min(620px, calc(100% - 28px)); z-index: 40; border-radius: 16px; overflow: hidden; background: linear-gradient(180deg, rgba(120, 8, 14, 0.94), rgba(70, 4, 10, 0.94)); border: 1px solid rgba(255, 90, 80, 0.7); box-shadow: 0 0 0 1px rgba(255, 60, 50, 0.3), 0 18px 60px rgba(255, 0, 0, 0.35); animation: eew-glow 1.2s ease-in-out infinite; }
+#eew.demo { background: linear-gradient(180deg, rgba(90, 40, 8, 0.94), rgba(50, 22, 4, 0.94)); border-color: rgba(255, 170, 60, 0.7); animation: none; }
+@keyframes eew-glow { 50% { box-shadow: 0 0 0 1px rgba(255, 60, 50, 0.6), 0 18px 80px rgba(255, 30, 20, 0.6); } }
+.eew-top { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(0, 0, 0, 0.22); }
+.eew-tag { font-weight: 800; letter-spacing: .08em; font-size: 15px; }
+.eew-sub { font-size: 12px; color: #ffc9c4; }
+.eew-top .icon-btn { margin-left: auto; color: #ffd4d0; }
+.eew-body { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 12px 16px 14px; align-items: center; }
+.eew-name { font-size: 20px; font-weight: 800; }
+.eew-meta { font-size: 13px; color: #ffd9d5; margin-top: 2px; }
+.eew-max { text-align: center; }
+.eew-max-label { font-size: 10.5px; color: #ffc9c4; letter-spacing: .05em; }
+.eew-max .badge { margin: 4px auto 0; }
+.eew-count { grid-column: 1 / -1; display: flex; gap: 14px; align-items: center; background: rgba(0, 0, 0, 0.25); border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+.eew-count b { font-family: var(--mono); font-size: 22px; }
+.eew-areas { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 5px; max-height: 64px; overflow: hidden; }
+.eew-areas span { font-size: 11.5px; background: rgba(0, 0, 0, 0.28); border-radius: 6px; padding: 2px 7px; }
+
+/* ---- 再生HUD / ツールチップ / トースト ---- */
+#replay-hud { position: fixed; top: calc(var(--gap) + 60px); left: 50%; transform: translateX(-50%); z-index: 15; display: flex; align-items: center; gap: 12px; padding: 7px 8px 7px 16px; border-radius: 999px; font-size: 12.5px; }
+#replay-hud .rh-wave { display: flex; gap: 10px; font-size: 11.5px; color: var(--sub); }
+#replay-hud .rh-wave i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+#replay-hud b { font-family: var(--mono); font-weight: 600; }
+#tooltip { position: fixed; z-index: 50; pointer-events: none; padding: 8px 11px; border-radius: 10px; font-size: 12px; background: var(--glass-2); border: 1px solid var(--line-2); box-shadow: 0 8px 30px rgba(0,0,0,.5); max-width: 280px; transform: translate(14px, 14px); }
+#tooltip .tt-title { font-weight: 700; font-size: 12.5px; display: flex; align-items: center; gap: 6px; }
+#tooltip .tt-meta { color: var(--sub); font-size: 11.5px; }
+#tooltip i { font-style: normal; font-weight: 800; font-size: 10.5px; padding: 1px 5px; border-radius: 4px; color: #fff; }
+#tooltip i.dark { color: #111; }
+#toasts { position: fixed; top: calc(var(--gap) + 60px); right: var(--gap); z-index: 60; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; pointer-events: none; }
+.toast { pointer-events: auto; padding: 10px 14px; border-radius: 11px; font-size: 12.5px; background: var(--glass-2); border: 1px solid var(--line-2); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); animation: toast-in .3s ease-out; max-width: 340px; }
+.toast.warn { border-color: rgba(255, 176, 32, 0.55); }
+.toast.bad { border-color: rgba(255, 59, 48, 0.6); }
+.toast.ok { border-color: rgba(61, 220, 151, 0.5); }
+.toast.out { opacity: 0; transform: translateX(10px); transition: all .3s; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } }
+
+/* ---- ローディング ---- */
+#loading { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 40%, #0a1426 0%, #03060d 70%); transition: opacity .8s ease; }
+#loading.fade { opacity: 0; pointer-events: none; }
+.ld-box { width: min(360px, 84vw); text-align: center; }
+.ld-logo { width: 64px; height: 64px; margin: 0 auto 14px; }
+.ld-title { font-size: 20px; font-weight: 700; letter-spacing: .06em; }
+.ld-sub { font-size: 10.5px; letter-spacing: .4em; color: var(--sub); margin-top: 2px; }
+.ld-bar { height: 3px; background: rgba(150, 185, 255, 0.12); border-radius: 2px; margin: 26px 0 12px; overflow: hidden; }
+.ld-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); box-shadow: 0 0 12px var(--accent); transition: width .25s; }
+.ld-steps { font-size: 12px; color: var(--sub); min-height: 60px; }
+.ld-steps div { display: flex; justify-content: space-between; padding: 2px 0; }
+.ld-steps div span:last-child { font-family: var(--mono); color: var(--dim); }
+.ld-steps div.done span:last-child { color: var(--ok); }
+.ld-err { color: #ffb0a8; font-size: 12.5px; margin-top: 16px; line-height: 1.7; }
+
+/* ---- モーダル ---- */
+.modal { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: rgba(2, 4, 10, 0.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: fade-in .2s; }
+@keyframes fade-in { from { opacity: 0; } }
+.modal-box { width: min(520px, calc(100% - 28px)); max-height: calc(100% - 60px); display: flex; flex-direction: column; background: var(--glass-2); border: 1px solid var(--line-2); border-radius: 16px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); overflow: hidden; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px 20px; border-bottom: 1px solid var(--line); }
+.modal-head h2 { margin: 0; font-size: 16px; }
+.modal-body { overflow-y: auto; padding: 8px 20px 18px; }
+.modal-body h3 { font-size: 12px; color: var(--accent); letter-spacing: .08em; margin: 16px 0 6px; }
+.modal-body p, .modal-body li { color: #c9d4e6; font-size: 12.8px; line-height: 1.75; }
+.modal-body ul { padding-left: 1.2em; margin: 4px 0; }
+.modal-body a { color: var(--accent); }
+.modal-body kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line-2); background: rgba(150,185,255,.08); }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(150,185,255,.07); font-size: 13px; }
+.set-row small { display: block; color: var(--dim); font-size: 11px; }
+.set-row select { background: rgba(150, 185, 255, 0.08); color: var(--text); border: 1px solid var(--line-2); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 12.5px; max-width: 180px; }
+.set-row select option { background: #0d1424; }
+.set-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* ---- 3Dラベル ---- */
+.lbl-city { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: rgba(232, 240, 252, 0.92); text-shadow: 0 1px 3px #000, 0 0 8px rgba(0,0,0,.9); white-space: nowrap; font-weight: 600; transform: translateX(-4px); }
+.lbl-city::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px rgba(255,255,255,.8); }
+.lbl-city.foreign { color: rgba(190, 200, 220, 0.6); font-weight: 400; font-size: 10.5px; }
+.lbl-city.foreign::before { background: rgba(200,210,230,.6); box-shadow: none; width: 4px; height: 4px; }
+.lbl-plate { font-size: 12px; letter-spacing: .28em; color: rgba(170, 195, 255, 0.5); font-weight: 600; white-space: nowrap; text-shadow: 0 0 10px rgba(0,0,0,.9); }
+.lbl-trench { font-size: 10.5px; color: rgba(255, 150, 130, 0.82); white-space: nowrap; text-shadow: 0 1px 3px #000; letter-spacing: .06em; }
+.lbl-depth { font-size: 10px; font-family: var(--mono); color: rgba(160, 190, 245, 0.72); white-space: nowrap; text-shadow: 0 1px 2px #000; transform: translateX(6px); }
+.lbl-depth.major { color: rgba(200, 220, 255, 0.9); }
+.lbl-me { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #7dffc4; text-shadow: 0 1px 3px #000; white-space: nowrap; }
+.lbl-me::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid #7dffc4; box-shadow: 0 0 8px #7dffc4; }
+.focus-mark { position: relative; width: 0; height: 0; }
+.focus-mark .fm-ring { position: absolute; left: -18px; top: -18px; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--c, #fff); opacity: 0; animation: ring 2s ease-out infinite; }
+.focus-mark .fm-ring:nth-child(2) { animation-delay: .66s; }
+.focus-mark .fm-ring:nth-child(3) { animation-delay: 1.33s; }
+@keyframes ring { 0% { transform: scale(.25); opacity: .95; } 100% { transform: scale(1.9); opacity: 0; } }
+.focus-mark .fm-x { position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; }
+.focus-mark .fm-x::before, .focus-mark .fm-x::after { content: ""; position: absolute; left: 8px; top: -1px; width: 2.5px; height: 20px; background: var(--c, #fff); border-radius: 2px; box-shadow: 0 0 6px var(--c, #fff), 0 0 1px #000; }
+.focus-mark .fm-x::before { transform: rotate(45deg); }
+.focus-mark .fm-x::after { transform: rotate(-45deg); }
+.focus-card { position: absolute; left: 22px; bottom: 16px; display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px; border-radius: 10px; background: rgba(8, 12, 22, 0.82); border: 1px solid rgba(150, 185, 255, 0.25); white-space: nowrap; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+.focus-card .badge { width: 30px; height: 30px; font-size: 14px; border-radius: 7px; }
+.focus-card .badge.small-txt { font-size: 11px; }
+.focus-card .fc-name { font-size: 12.5px; font-weight: 700; }
+.focus-card .fc-meta { font-size: 11px; color: var(--sub); }
+.focus-card::before { content: ""; position: absolute; left: -16px; bottom: -10px; width: 20px; height: 1.5px; background: rgba(200, 220, 255, 0.5); transform: rotate(-38deg); transform-origin: right; }
+.focus-mark.latest .focus-card { opacity: .88; }
+.focus-mark.flip .focus-card { left: auto; right: 22px; }
+.focus-mark.flip .focus-card::before { left: auto; right: -16px; transform: rotate(38deg); transform-origin: left; }
+
+/* ---- クレジット ---- */
+#credits { position: fixed; left: calc(var(--list-w) + var(--gap) * 2); right: var(--gap); bottom: 3px; font-size: 9.5px; line-height: 14px; color: rgba(150, 165, 190, 0.6); z-index: 9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+#credits a { color: inherit; }
+#mobile-tabs { display: none; }
+#layers-panel .lp-legend { display: none; }
+@media (max-width: 1260px) {
+  #legend { display: none; }
+  #layers-panel .lp-legend { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+  .tl-info { display: none; }
+}
+@media (max-width: 1000px) {
+  :root { --list-w: 272px; }
+}
+
+/* ---- スマホ ---- */
+@media (max-width: 760px) {
+  :root { --gap: 8px; }
+  #topbar { height: 42px; gap: 6px; }
+  .brand { height: 42px; padding: 4px 10px 4px 6px; }
+  .brand .logo { width: 24px; height: 24px; }
+  .brand-title { font-size: 13px; white-space: nowrap; }
+  .brand-sub { display: none; }
+  .clock .date { display: none; }
+  .latest-chip { display: none !important; }
+  .top-right { height: 42px; padding: 0 2px 0 8px; gap: 2px; }
+  .clock { font-size: 11px; }
+  .clock small { display: none; }
+  .conn .txt { display: none; }
+  .conn { border: 0; padding: 0 6px; }
+  #list-panel { top: auto; left: var(--gap); right: var(--gap); bottom: calc(var(--gap) + 52px + 86px + var(--gap)); width: auto; height: 46vh; display: none; }
+  body.m-list #list-panel { display: flex; }
+  #detail-panel { top: auto; left: var(--gap); right: var(--gap); width: auto; bottom: calc(var(--gap) + 52px + 86px + var(--gap)); max-height: 36vh; }
+  #detail-panel .d-scroll { padding: 12px 14px; }
+  #detail-panel .d-head { grid-template-columns: 46px 1fr 30px; gap: 10px; }
+  #detail-panel .badge.big { width: 46px; height: 46px; font-size: 21px; }
+  #detail-panel .badge.big.small-txt { font-size: 16px; }
+  #detail-panel .d-name { font-size: 15px; }
+  #detail-panel .d-grid { grid-template-columns: repeat(4, 1fr); gap: 5px; margin: 10px 0 6px; }
+  #detail-panel .d-cell { padding: 5px 7px; }
+  #detail-panel .d-cell b { font-size: 13px; }
+  #detail-panel .d-cell label { font-size: 9.5px; white-space: nowrap; }
+  #detail-panel .d-cell .lf { display: none; }
+  #detail-panel .d-cell .ls { display: inline; }
+  body.m-list #detail-panel, body.m-list #viewbar { display: none; }
+  #replay-hud { white-space: nowrap; padding: 5px 6px 5px 12px; gap: 8px; }
+  #replay-hud .rh-label { display: none; }
+  #timeline { left: var(--gap); right: var(--gap); bottom: calc(var(--gap) + 52px); height: 86px; grid-template-columns: 44px 1fr; padding: 6px 10px 6px 4px; }
+  .tl-play { width: 40px; height: 40px; }
+  .tl-info { display: none; }
+  .tl-top { gap: 6px; }
+  .tl-ranges { flex: 1; min-width: 0; }
+  .tl-ranges button { padding: 3px 0; font-size: 11px; flex: 1; white-space: nowrap; }
+  .tl-speed { display: none; }
+  .tl-live { padding: 3px 6px; }
+  .tl-ranges .rl { display: none; }
+  .tl-ranges .rs { display: inline; }
+  #legend { display: none; }
+  #viewbar { bottom: calc(var(--gap) * 2 + 52px + 86px); right: var(--gap); }
+  #viewbar button.txt-btn { display: none; }
+  #layers-panel { left: var(--gap); right: var(--gap); width: auto; bottom: calc(var(--gap) * 3 + 52px + 86px + 44px); max-height: 50vh; overflow-y: auto; }
+  #mobile-tabs { display: flex; position: fixed; left: var(--gap); right: var(--gap); bottom: var(--gap); height: 48px; z-index: 30; padding: 4px; gap: 4px; }
+  #mobile-tabs button { flex: 1; border-radius: 10px; font-size: 12px; color: var(--sub); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+  #mobile-tabs button.on { color: var(--accent); background: rgba(94, 200, 255, 0.12); }
+  #mobile-tabs svg.ic { width: 17px; height: 17px; }
+  #credits { display: none; }
+  #eew { top: calc(var(--gap) + 50px); }
+  .eew-name { font-size: 17px; }
+  #replay-hud { top: calc(var(--gap) + 50px); font-size: 11.5px; }
+  #replay-hud .rh-wave { display: none; }
+  #toasts { top: calc(var(--gap) + 50px); left: var(--gap); align-items: stretch; }
+  .lbl-city.foreign { display: none; }
+  .lbl-plate { font-size: 10px; letter-spacing: .18em; }
+  .lbl-city { font-size: 10.5px; }
+  .focus-mark.latest .focus-card { display: none; }
+  .focus-card { left: 16px; bottom: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .focus-mark .fm-ring, .conn.ok .dot, #eew { animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div class="vignette"></div>
+
+<header id="topbar">
+  <div class="brand panel" style="position:static">
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+      <defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ec8ff"/><stop offset="1" stop-color="#8f7dff"/></linearGradient></defs>
+      <circle cx="16" cy="16" r="14.5" fill="none" stroke="url(#lg1)" stroke-width="1.5" opacity=".55"/>
+      <circle cx="16" cy="16" r="9" fill="none" stroke="url(#lg1)" stroke-width="1.2" opacity=".35"/>
+      <path d="M3 17h5l2.2-6 3.4 12 3-15 2.8 13 2.2-7 1.8 3H29" fill="none" stroke="url(#lg1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="brand-text"><div class="brand-title">地震3Dモニター</div><div class="brand-sub">JAPAN SEISMIC 3D</div></div>
+  </div>
+  <button id="latest-chip" class="latest-chip panel hidden" style="position:static" title="最新の地震へ移動"></button>
+  <div class="top-spacer"></div>
+  <div class="top-right panel" style="position:static">
+    <div id="clock" class="clock num">--</div>
+    <div id="conn" class="conn"><span class="dot"></span><span class="txt">接続中…</span></div>
+    <button id="btn-settings" class="icon-btn" title="設定" aria-label="設定"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/></svg></button>
+    <button id="btn-help" class="icon-btn" title="使い方" aria-label="使い方"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.2-2.4 3.7"/><path d="M12 17.2v.1"/></svg></button>
+  </div>
+</header>
+
+<aside id="list-panel" class="panel" aria-label="最近の地震">
+  <div class="panel-head">
+    <div class="ph-title">最近の地震<span class="ph-sub">気象庁発表</span></div>
+    <div class="ph-count num" id="list-count"></div>
+  </div>
+  <div class="chips" id="list-filter">
+    <button class="chip" data-min="1">震度1以上</button>
+    <button class="chip" data-min="3">震度3以上</button>
+    <button class="chip" data-min="4">震度4以上</button>
+    <button class="chip" data-min="5">5弱以上</button>
+  </div>
+  <div id="quake-list" class="quake-list"><div class="q-empty">地震情報を取得しています…</div></div>
+</aside>
+
+<aside id="detail-panel" class="panel hidden" aria-live="polite"><div class="d-scroll" id="detail-body"></div></aside>
+
+<div id="legend" class="panel">
+  <div class="lg-block">
+    <span class="lg-title">震源の深さ（過去の震源の色）</span>
+    <div class="lg-depth"></div>
+    <div class="lg-ticks"><span>0</span><span>30</span><span>70</span><span>150</span><span>300</span><span>450</span><span>600km</span></div>
+  </div>
+  <div class="lg-block">
+    <span class="lg-title">最大震度（最近の地震の色）</span>
+    <div class="lg-shindo" id="lg-shindo"></div>
+    <div class="lg-mag"><span>大きさ＝マグニチュード</span><i style="width:5px;height:5px"></i><i style="width:8px;height:8px"></i><i style="width:12px;height:12px"></i></div>
+  </div>
+</div>
+
+<div id="viewbar" class="panel">
+  <button data-view="oblique" class="txt-btn" title="斜め上から見る (1)">俯瞰</button>
+  <button data-view="top" class="txt-btn" title="真上から見る (2)">真上</button>
+  <button data-view="south" class="txt-btn" title="南から断面を見る (3)">南から</button>
+  <button data-view="east" class="txt-btn" title="東から断面を見る (4)">東から</button>
+  <span class="sep txt-btn"></span>
+  <button id="btn-rotate" title="自動回転" aria-label="自動回転"><svg class="ic" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5v4.4h-4.4"/></svg></button>
+  <button id="btn-layers" title="表示の設定" aria-label="表示の設定"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5l9 4.8-9 4.8-9-4.8z"/><path d="M3 12.6l9 4.8 9-4.8"/><path d="M3 16.6l9 4.8 9-4.8" opacity=".55"/></svg></button>
+</div>
+
+<div id="layers-panel" class="panel hidden">
+  <div class="lp-title">表示</div>
+  <label class="tg"><span>最近の地震<small>気象庁の地震情報（約1か月）</small></span><input type="checkbox" data-set="showJma"><span class="sw"></span></label>
+  <label class="tg"><span>過去の震源<small>USGS（M4以上。20年表示ではM5以上）</small></span><input type="checkbox" data-set="showUsgs"><span class="sw"></span></label>
+  <label class="tg"><span>震度観測点<small>選んだ地震の各地の震度</small></span><input type="checkbox" data-set="showStations"><span class="sw"></span></label>
+  <label class="tg"><span>都道府県の震度</span><input type="checkbox" data-set="showPrefTint"><span class="sw"></span></label>
+  <label class="tg"><span>県境</span><input type="checkbox" data-set="showBorders"><span class="sw"></span></label>
+  <label class="tg"><span>プレート境界（海溝・トラフ）</span><input type="checkbox" data-set="showPlates"><span class="sw"></span></label>
+  <label class="tg"><span>地名</span><input type="checkbox" data-set="showLabels"><span class="sw"></span></label>
+  <label class="tg"><span>地下の壁と深さ目盛り</span><input type="checkbox" data-set="showWalls"><span class="sw"></span></label>
+  <div class="lp-sep"></div>
+  <div class="sl"><div class="sl-head"><span>深さの強調</span><b id="v-depth">×2.0</b></div><input type="range" min="1" max="5" step="0.25" data-set="depthExag"></div>
+  <div class="sl"><div class="sl-head"><span>地形の起伏の強調</span><b id="v-land">×10</b></div><input type="range" min="1" max="30" step="1" data-set="landExag"></div>
+  <div class="lp-legend"><div class="lp-sep"></div></div>
+</div>
+
+<div id="timeline" class="panel">
+  <button class="tl-play" id="tl-play" title="地震活動を早送り再生 (Space)" aria-label="再生"><svg viewBox="0 0 24 24" id="tl-play-ic"><path d="M8 5.5v13l10.5-6.5z"/></svg></button>
+  <div class="tl-body">
+    <div class="tl-top">
+      <div class="tl-ranges" id="tl-ranges"></div>
+      <div class="tl-info" id="tl-info"></div>
+      <button class="tl-speed" id="tl-speed" title="再生速度">×1</button>
+      <button class="tl-live on" id="tl-live" title="現在時刻の表示に戻る">LIVE</button>
+    </div>
+    <canvas id="tl-canvas" aria-label="地震活動のタイムライン"></canvas>
+  </div>
+</div>
+
+<div id="eew" class="hidden" role="alert" aria-live="assertive">
+  <div class="eew-top"><span class="eew-tag" id="eew-tag">緊急地震速報（警報）</span><span class="eew-sub" id="eew-sub"></span><button class="icon-btn" id="eew-close" aria-label="閉じる"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="eew-body">
+    <div><div class="eew-name" id="eew-name"></div><div class="eew-meta" id="eew-meta"></div></div>
+    <div class="eew-max"><div class="eew-max-label">予想最大震度</div><div id="eew-max"></div></div>
+    <div class="eew-count hidden" id="eew-count"></div>
+    <div class="eew-areas" id="eew-areas"></div>
+  </div>
+</div>
+
+<div id="replay-hud" class="panel hidden">
+  <span class="rh-label">揺れの広がりを再生中</span>
+  <b id="rh-time">+0.0秒</b>
+  <span class="rh-wave"><span><i style="background:#4aa8ff"></i>P波</span><span><i style="background:#ff6a2a"></i>S波</span></span>
+  <button class="btn" id="rh-skip" style="height:28px;padding:0 10px">スキップ</button>
+</div>
+
+<div id="tooltip" class="hidden"></div>
+<div id="toasts"></div>
+
+<nav id="mobile-tabs" class="panel">
+  <button data-tab="list"><svg class="ic" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>一覧</button>
+  <button data-tab="map" class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5l9 4.8-9 4.8-9-4.8z"/><path d="M3 12.6l9 4.8 9-4.8"/></svg>3D</button>
+  <button data-tab="settings"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/></svg>設定</button>
+</nav>
+
+<div id="loading">
+  <div class="ld-box">
+    <svg class="ld-logo" viewBox="0 0 32 32" aria-hidden="true">
+      <defs><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ec8ff"/><stop offset="1" stop-color="#8f7dff"/></linearGradient></defs>
+      <circle cx="16" cy="16" r="14.5" fill="none" stroke="url(#lg2)" stroke-width="1" opacity=".5"/>
+      <path d="M3 17h5l2.2-6 3.4 12 3-15 2.8 13 2.2-7 1.8 3H29" fill="none" stroke="url(#lg2)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="ld-title">地震3Dモニター</div>
+    <div class="ld-sub">JAPAN SEISMIC 3D</div>
+    <div class="ld-bar"><i id="ld-bar"></i></div>
+    <div class="ld-steps" id="ld-steps"></div>
+    <div class="ld-err hidden" id="ld-err"></div>
+  </div>
+</div>
+
+<div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="設定">
+  <div class="modal-box">
+    <div class="modal-head"><h2>設定</h2><button class="icon-btn" data-close aria-label="閉じる"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="modal-body">
+      <h3>お知らせ</h3>
+      <label class="tg set-row"><span>新しい地震の通知音<small>設定した震度以上で鳴らします</small></span><input type="checkbox" data-set="sound"><span class="sw"></span></label>
+      <label class="tg set-row"><span>緊急地震速報の警報音</span><input type="checkbox" data-set="eewSound"><span class="sw"></span></label>
+      <label class="tg set-row"><span>デスクトップ通知<small>ブラウザの通知を使います</small></span><input type="checkbox" data-set="notify" id="set-notify"><span class="sw"></span></label>
+      <div class="set-row"><span>通知・通知音の対象</span>
+        <select data-set="notifyMin">
+          <option value="1">震度1以上</option><option value="2">震度2以上</option><option value="3">震度3以上</option><option value="4">震度4以上</option><option value="5">震度5弱以上</option><option value="7">震度6弱以上</option>
+        </select>
+      </div>
+      <label class="tg set-row"><span>新しい地震に自動で移動<small>操作していないときだけ震源へ視点を動かします</small></span><input type="checkbox" data-set="autoFocus"><span class="sw"></span></label>
+      <div class="set-row"><span>音のテスト<small>ブラウザの仕様で、ページを一度クリック（タップ）するまで音は鳴りません</small></span><div class="set-actions"><button class="btn" id="test-chime">通知音</button><button class="btn" id="test-alarm">警報音</button></div></div>
+      <h3>自分の地点</h3>
+      <div class="set-row"><span>地点<small>緊急地震速報のとき、揺れ（S波）が届くまでの目安秒数を表示します</small></span>
+        <select id="set-me"></select>
+      </div>
+      <div class="set-row"><span>現在地を使う<small>位置情報はこのブラウザの中だけで使います</small></span><button class="btn" id="btn-geo">現在地を取得</button></div>
+      <h3>緊急地震速報のデモ</h3>
+      <div class="set-row"><span>架空の地震で表示を確認<small>訓練用の表示です。実際の情報ではありません</small></span><button class="btn" id="btn-demo">デモを再生</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="help-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="使い方">
+  <div class="modal-box">
+    <div class="modal-head"><h2>地震3Dモニターについて</h2><button class="icon-btn" data-close aria-label="閉じる"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="modal-body">
+      <h3>見えているもの</h3>
+      <ul>
+        <li>地面の下に浮かぶ光の点が<b>震源</b>です。小さな点（過去の震源）の色は深さ、大きな点（最近の地震）の色は最大震度、大きさはマグニチュードを表します。</li>
+        <li>日本列島の下へ斜めに沈んでいく震源の帯は、<b>太平洋プレートやフィリピン海プレートが沈み込んでいる形</b>そのものです（和達－ベニオフ帯）。「南から」「東から」の視点で横から見るとよくわかります。</li>
+        <li>赤い線は海溝・トラフ（プレート境界）です。深さと地形の起伏は見やすさのため強調しています（初期値：深さ×2、起伏×10）。</li>
+      </ul>
+      <h3>操作</h3>
+      <ul>
+        <li>ドラッグで回転、右ドラッグ（2本指）で移動、ホイール（ピンチ）でズーム。</li>
+        <li>地震の点や一覧をクリックすると、震源へ移動して<b>揺れの広がり（P波・S波）と各地の震度</b>を再生します。</li>
+        <li>下のタイムラインで表示期間を切り替え、▶で地震活動を早送り再生できます。バーをドラッグすると好きな時点を表示できます。</li>
+        <li>キーボード：<kbd>Space</kbd> 再生／停止、<kbd>1</kbd>〜<kbd>4</kbd> 視点、<kbd>R</kbd> 視点リセット、<kbd>Esc</kbd> 閉じる</li>
+      </ul>
+      <h3>データ</h3>
+      <ul>
+        <li>地震情報・震度観測点：<a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>（防災情報JSON）</li>
+        <li>リアルタイム受信・緊急地震速報：<a href="https://www.p2pquake.net/" target="_blank" rel="noopener">P2P地震情報</a> WebSocket API</li>
+        <li>過去の震源：<a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener">USGS</a> Earthquake Catalog</li>
+        <li>地形・海底地形：Mapzen Terrain Tiles（AWS Open Data。SRTM、GMTED2010、ETOPO1 ほか）</li>
+        <li>県境：<a href="https://github.com/dataofjapan/land" target="_blank" rel="noopener">dataofjapan/land</a>（出典：地球地図日本）</li>
+        <li>描画：<a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></li>
+      </ul>
+      <h3>ご注意</h3>
+      <p>このツールは防災の参考情報です。緊急地震速報の表示は遅れたり届かなかったりすることがあります。揺れの到達秒数は単純な速度（P波 毎秒7km・S波 毎秒4km）による目安です。身を守る行動は、気象庁や自治体の発表・テレビ・ラジオ・スマートフォンの緊急速報に従ってください。</p>
+      <p style="color:var(--dim);font-size:11.5px">Built with Claude (Opus 5.5) · © 2026 たぬ · MIT License</p>
+    </div>
+  </div>
+</div>
+
+<footer id="credits">データ：気象庁・P2P地震情報・USGS ／ 地形：Mapzen Terrain Tiles（AWS Open Data） ／ 県境：dataofjapan/land（地球地図日本） ／ Built with Claude (Opus 5.5)</footer>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+// ====== 定数 ======
+const R_EARTH = 6371.0;                                   // km
+const REGION = { lonMin: 120, lonMax: 151.5, latMin: 20, latMax: 48 };
+const ORIGIN = { lat: 34.0, lon: 135.75 };                // ローカル座標の原点
+const MAX_DEPTH = 700;                                    // 地下の箱の深さ (km)
+const VP = 7.0, VS = 4.0;                                 // 揺れの伝わる速さの目安 (km/s)
+const DEG = Math.PI / 180;
+const IS_MOBILE = matchMedia('(max-width: 760px)').matches || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+const TILE = IS_MOBILE ? { z: 5, x0: 26, x1: 29, y0: 11, y1: 14 } : { z: 6, x0: 53, x1: 58, y0: 22, y1: 28 };
+const TILE_URL = (z, x, y) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`;
+const JMA_LIST = 'https://www.jma.go.jp/bosai/quake/data/list.json';
+const JMA_DATA = 'https://www.jma.go.jp/bosai/quake/data/';
+// ?sandbox を付けると P2P地震情報の試験配信（過去の情報を約30秒ごとに再送）につなぐ
+const SANDBOX = new URLSearchParams(location.search).has('sandbox');
+const P2P_WS = SANDBOX ? 'wss://api-realtime-sandbox.p2pquake.net/v2/ws' : 'wss://api.p2pquake.net/v2/ws';
+const P2P_API = 'https://api.p2pquake.net/v2/history';
+const USGS_Q = 'https://earthquake.usgs.gov/fdsnws/event/1/query';
+const PREF_TOPO = 'https://raw.githubusercontent.com/dataofjapan/land/master/japan.topojson';
+const T_REF = Date.now();                                 // GPUに渡す時刻の基準（秒の相対値にする）
+const YEAR = 365.25 * 864e5;
+
+// ====== 震度 ======
+const SHINDO = [
+  { label: '不明', txt: '?', color: '#5c6a80', dark: false },
+  { label: '震度1', txt: '1', color: '#a9bad6', dark: true },
+  { label: '震度2', txt: '2', color: '#3fb8ff', dark: true },
+  { label: '震度3', txt: '3', color: '#3d6cff', dark: false },
+  { label: '震度4', txt: '4', color: '#f2dc80', dark: true },
+  { label: '震度5弱', txt: '5弱', color: '#ffe014', dark: true },
+  { label: '震度5強', txt: '5強', color: '#ff9b14', dark: true },
+  { label: '震度6弱', txt: '6弱', color: '#ff401f', dark: false },
+  { label: '震度6強', txt: '6強', color: '#d0103a', dark: false },
+  { label: '震度7', txt: '7', color: '#b8008c', dark: false },
+];
+const JMA_INT = { '1': 1, '2': 2, '3': 3, '4': 4, '5-': 5, '5+': 6, '6-': 7, '6+': 8, '7': 9 };
+const P2P_INT = { 10: 1, 20: 2, 30: 3, 40: 4, 45: 5, 46: 5, 50: 6, 55: 7, 60: 8, 70: 9 };
+const shindoJma = (s) => JMA_INT[String(s ?? '').replace(/[^0-9+\-]/g, '')] || 0;
+const shindoP2P = (n) => P2P_INT[Math.round(n)] || 0;
+
+function badgeHTML(s, cls = '') {
+  const d = SHINDO[s] || SHINDO[0];
+  if (!s) return `<div class="badge none ${cls}">－</div>`;
+  const small = d.txt.length > 1 ? ' small-txt' : '';
+  return `<div class="badge${d.dark ? ' dark' : ''}${small} ${cls}" style="background:${d.color}">${d.txt}</div>`;
+}
+function miniBadge(s) {
+  const d = SHINDO[s] || SHINDO[0];
+  return `<i class="${d.dark ? 'dark' : ''}" style="background:${d.color}">${s ? d.txt : '?'}</i>`;
+}
+
+// ====== 都道府県（JISコード順・県庁所在地） ======
+const PREFS = [
+  ['北海道', '札幌', 43.064, 141.347], ['青森県', '青森', 40.824, 140.740], ['岩手県', '盛岡', 39.704, 141.153], ['宮城県', '仙台', 38.269, 140.872],
+  ['秋田県', '秋田', 39.719, 140.102], ['山形県', '山形', 38.240, 140.364], ['福島県', '福島', 37.750, 140.468], ['茨城県', '水戸', 36.342, 140.447],
+  ['栃木県', '宇都宮', 36.566, 139.884], ['群馬県', '前橋', 36.391, 139.061], ['埼玉県', 'さいたま', 35.857, 139.649], ['千葉県', '千葉', 35.605, 140.123],
+  ['東京都', '東京', 35.690, 139.692], ['神奈川県', '横浜', 35.448, 139.642], ['新潟県', '新潟', 37.902, 139.023], ['富山県', '富山', 36.695, 137.211],
+  ['石川県', '金沢', 36.594, 136.626], ['福井県', '福井', 36.065, 136.222], ['山梨県', '甲府', 35.664, 138.568], ['長野県', '長野', 36.651, 138.181],
+  ['岐阜県', '岐阜', 35.391, 136.722], ['静岡県', '静岡', 34.977, 138.383], ['愛知県', '名古屋', 35.180, 136.907], ['三重県', '津', 34.730, 136.509],
+  ['滋賀県', '大津', 35.004, 135.868], ['京都府', '京都', 35.021, 135.756], ['大阪府', '大阪', 34.686, 135.520], ['兵庫県', '神戸', 34.691, 135.183],
+  ['奈良県', '奈良', 34.685, 135.833], ['和歌山県', '和歌山', 34.226, 135.168], ['鳥取県', '鳥取', 35.504, 134.238], ['島根県', '松江', 35.472, 133.051],
+  ['岡山県', '岡山', 34.662, 133.935], ['広島県', '広島', 34.397, 132.460], ['山口県', '山口', 34.186, 131.471], ['徳島県', '徳島', 34.066, 134.559],
+  ['香川県', '高松', 34.340, 134.043], ['愛媛県', '松山', 33.842, 132.766], ['高知県', '高知', 33.560, 133.531], ['福岡県', '福岡', 33.607, 130.418],
+  ['佐賀県', '佐賀', 33.249, 130.299], ['長崎県', '長崎', 32.745, 129.874], ['熊本県', '熊本', 32.790, 130.742], ['大分県', '大分', 33.238, 131.613],
+  ['宮崎県', '宮崎', 31.911, 131.424], ['鹿児島県', '鹿児島', 31.560, 130.558], ['沖縄県', '那覇', 26.212, 127.681],
+].map(([name, cap, lat, lon], i) => ({ code: i + 1, name, cap, lat, lon }));
+const PREF_BY_NAME = new Map(PREFS.map(p => [p.name, p]));
+const prefCode = (name) => PREF_BY_NAME.get(name)?.code || 0;
+
+// ====== 地図上のラベル ======
+const CITIES = [
+  ['札幌', 43.06, 141.35], ['仙台', 38.27, 140.87], ['東京', 35.68, 139.76], ['新潟', 37.92, 139.04], ['金沢', 36.56, 136.66],
+  ['名古屋', 35.18, 136.91], ['大阪', 34.69, 135.50], ['広島', 34.39, 132.46], ['高知', 33.56, 133.53], ['福岡', 33.59, 130.40],
+  ['鹿児島', 31.60, 130.56], ['那覇', 26.21, 127.68], ['父島', 27.09, 142.19],
+];
+const FOREIGN = [['ソウル', 37.57, 126.98], ['ウラジオストク', 43.12, 131.89], ['台北', 25.03, 121.57], ['上海', 31.23, 121.47]];
+const PLATES = [
+  ['太平洋プレート', 36.0, 148.2], ['フィリピン海プレート', 28.3, 136.2], ['北米プレート', 46.6, 145.0], ['ユーラシアプレート', 39.6, 132.2],
+];
+const TRENCH_LABELS = [
+  ['日本海溝', 38.9, 144.95], ['千島海溝', 42.35, 148.45], ['伊豆・小笠原海溝', 29.6, 143.5], ['南海トラフ', 32.05, 135.4],
+  ['相模トラフ', 34.2, 140.5], ['南西諸島海溝', 24.6, 128.9],
+];
+// 海溝軸：海底地形の最深部をたどって作成
+const TRENCHES = {
+  kuril: [144.77,41.05,144.99,41.17,145.31,41.35,145.63,41.52,145.97,41.66,146.29,41.82,146.60,41.99,146.88,42.18,147.20,42.33,147.56,42.45,147.86,42.61,148.12,42.82,148.38,43.02,148.68,43.20,148.96,43.40,149.27,43.58,149.59,43.74,149.90,43.91,150.20,44.06,150.52,44.21,150.85,44.35,151.19,44.48,151.43,44.57],
+  japan: [144.73,40.99,144.63,40.81,144.51,40.54,144.39,40.27,144.32,40.00,144.27,39.71,144.23,39.43,144.19,39.14,144.15,38.86,144.10,38.57,144.03,38.29,143.95,38.00,143.86,37.71,143.73,37.42,143.57,37.15,143.39,36.88,143.19,36.63,142.99,36.38,142.85,36.11,142.74,35.85,142.56,35.61,142.28,35.41,142.18,35.15,142.11,34.86,142.03,34.56,141.98,34.29,141.96,34.20],
+  izu: [141.94,34.01,141.95,33.82,141.99,33.55,142.04,33.27,142.06,33.00,142.09,32.71,142.12,32.43,142.14,32.14,142.14,31.86,142.16,31.57,142.18,31.29,142.22,31.00,142.30,30.71,142.42,30.43,142.53,30.14,142.61,29.85,142.69,29.56,142.78,29.28,142.89,29.00,143.02,28.71,143.14,28.43,143.24,28.15,143.29,27.86,143.30,27.57,143.30,27.29,143.31,27.00,143.32,26.71,143.31,26.42,143.28,26.14,143.22,25.86,143.21,25.57,143.22,25.28,143.28,24.99,143.38,24.71,143.52,24.46,143.70,24.23,143.91,24.01,144.10,23.77,144.36,23.61,144.60,23.43,144.80,23.24,144.85,23.16],
+  sagami: [139.34,35.01,139.61,34.85,140.02,34.64,140.44,34.50,140.81,34.47,141.17,34.42,141.48,34.31,141.76,34.14,141.86,34.09],
+  nankai: [138.60,34.80,138.55,34.57,138.49,34.26,138.35,33.99,138.11,33.73,137.86,33.45,137.62,33.18,137.28,33.09,136.94,33.01,136.66,32.88,136.37,32.75,136.07,32.65,135.76,32.57,135.45,32.50,135.15,32.39,134.88,32.23,134.60,32.09,134.31,31.96,134.02,31.80,133.74,31.64,133.46,31.48,133.16,31.32,132.89,31.16,132.65,31.02,132.57,30.97],
+  ryukyu: [132.56,30.99,132.47,30.80,132.34,30.52,132.27,30.23,132.16,29.94,132.06,29.66,131.95,29.38,131.84,29.11,131.63,28.86,131.36,28.61,131.10,28.34,130.95,28.08,130.88,27.80,130.84,27.54,130.76,27.37,130.61,27.24,130.45,27.08,130.22,26.85,129.95,26.68,129.74,26.43,129.53,26.23,129.32,26.01,129.10,25.81,128.87,25.61,128.65,25.42,128.41,25.23,128.19,25.04,127.97,24.83,127.72,24.69,127.47,24.55,127.22,24.39,127.00,24.19,126.78,23.98,126.53,23.82,126.26,23.67,125.98,23.54,125.71,23.41,125.41,23.34,125.12,23.25,124.81,23.17,124.49,23.10,124.16,23.00,123.86,23.01,123.57,23.05,123.28,23.12,122.96,23.15,122.62,23.22,122.31,23.27,122.23,23.32],
+};
+
+// ====== 設定（ブラウザ内に保存） ======
+const DEFAULTS = {
+  depthExag: 2, landExag: 10,
+  showJma: true, showUsgs: true, showStations: true, showPrefTint: true, showBorders: true, showPlates: true, showLabels: true, showWalls: true,
+  autoRotate: false, sound: true, eewSound: true, notify: false, notifyMin: 3, autoFocus: true,
+  range: '5y', listMin: 1, speed: 1, me: '', meLat: null, meLon: null,
+};
+const S = (() => { try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('quake3d:settings') || '{}') }; } catch { return { ...DEFAULTS }; } })();
+function saveSettings() { try { localStorage.setItem('quake3d:settings', JSON.stringify(S)); } catch {} }
+
+// ====== ユーティリティ ======
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const p2 = (n) => String(n).padStart(2, '0');
+function jst(ms) { const d = new Date(ms + 9 * 3600e3); return { y: d.getUTCFullYear(), mo: d.getUTCMonth() + 1, d: d.getUTCDate(), h: d.getUTCHours(), mi: d.getUTCMinutes(), s: d.getUTCSeconds() }; }
+const fmtShort = (ms) => { const t = jst(ms); return `${t.mo}/${t.d} ${p2(t.h)}:${p2(t.mi)}`; };
+const fmtLong = (ms) => { const t = jst(ms); return `${t.y}年${t.mo}月${t.d}日 ${p2(t.h)}時${p2(t.mi)}分ごろ`; };
+const fmtDate = (ms) => { const t = jst(ms); return `${t.y}/${p2(t.mo)}/${p2(t.d)}`; };
+const fmtClock = (ms) => { const t = jst(ms); return `${t.y}/${p2(t.mo)}/${p2(t.d)} ${p2(t.h)}:${p2(t.mi)}:${p2(t.s)}`; };
+function fmtAgo(ms) {
+  const s = (Date.now() - ms) / 1000;
+  if (s < 60) return 'たった今';
+  if (s < 3600) return `${Math.floor(s / 60)}分前`;
+  if (s < 86400) return `${Math.floor(s / 3600)}時間前`;
+  return `${Math.floor(s / 86400)}日前`;
+}
+// "2026/09/26 21:07:00" のような日本時間の文字列
+function parseJST(s) {
+  if (!s) return null;
+  const m = String(s).match(/(\d{4})\/(\d{1,2})\/(\d{1,2})[ T](\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?/);
+  if (m) return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4] - 9, +m[5], +(m[6] || 0), m[7] ? Math.round(+('0.' + m[7]) * 1000) : 0);
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? t : null;
+}
+// "+34.8+136.8-40000/" → 緯度・経度・深さ(km)
+function parseCod(cod) {
+  const m = String(cod || '').match(/^([+-]\d+(?:\.\d+)?)([+-]\d+(?:\.\d+)?)([+-]\d+(?:\.\d+)?)?\/?/);
+  if (!m) return null;
+  return { lat: +m[1], lon: +m[2], depth: m[3] != null ? Math.abs(+m[3]) / 1000 : null };
+}
+const inRegion = (lat, lon) => lat >= REGION.latMin && lat <= REGION.latMax && lon >= REGION.lonMin && lon <= REGION.lonMax;
+const fmtDepth = (d) => (d == null ? '不明' : d === 0 ? 'ごく浅い' : `${Math.round(d)}km`);
+const fmtMag = (m) => (m == null ? 'M不明' : `M${m.toFixed(1)}`);
+function kmBetween(lat1, lon1, lat2, lon2) {
+  const a = Math.sin((lat2 - lat1) * DEG / 2) ** 2 + Math.cos(lat1 * DEG) * Math.cos(lat2 * DEG) * Math.sin((lon2 - lon1) * DEG / 2) ** 2;
+  return 2 * R_EARTH * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+// 震源から地点までの直線距離（深さ込み）
+function hypoDist(lat, lon, depth, lat2, lon2) {
+  const a = ecef(lat, lon, R_EARTH - (depth || 0), new THREE.Vector3());
+  const b = ecef(lat2, lon2, R_EARTH, new THREE.Vector3());
+  return a.distanceTo(b);
+}
+
+// ====== 座標（地球の丸みをそのまま使う） ======
+const ENU = (() => {
+  const la = ORIGIN.lat * DEG, lo = ORIGIN.lon * DEG;
+  const e = new THREE.Vector3(-Math.sin(lo), Math.cos(lo), 0);
+  const n = new THREE.Vector3(-Math.sin(la) * Math.cos(lo), -Math.sin(la) * Math.sin(lo), Math.cos(la));
+  const u = new THREE.Vector3(Math.cos(la) * Math.cos(lo), Math.cos(la) * Math.sin(lo), Math.sin(la));
+  // ローカル座標：x=東, y=上, z=南
+  return new THREE.Matrix3().set(e.x, e.y, e.z, u.x, u.y, u.z, -n.x, -n.y, -n.z);
+})();
+function ecef(lat, lon, r, out) {
+  const la = lat * DEG, lo = lon * DEG, c = Math.cos(la);
+  return out.set(r * c * Math.cos(lo), r * c * Math.sin(lo), r * Math.sin(la));
+}
+function toLocal(lat, lon, alt, out = new THREE.Vector3()) {
+  ecef(lat, lon, R_EARTH + alt, out).applyMatrix3(ENU);
+  out.y -= R_EARTH;
+  return out;
+}
+function basisAt(lat, lon) {
+  const la = lat * DEG, lo = lon * DEG;
+  return {
+    e: new THREE.Vector3(-Math.sin(lo), Math.cos(lo), 0).applyMatrix3(ENU),
+    n: new THREE.Vector3(-Math.sin(la) * Math.cos(lo), -Math.sin(la) * Math.sin(lo), Math.cos(la)).applyMatrix3(ENU),
+    u: new THREE.Vector3(Math.cos(la) * Math.cos(lo), Math.cos(la) * Math.sin(lo), Math.sin(la)).applyMatrix3(ENU),
+  };
+}
+
+// ====== 標高データ ======
+const HM = { W: 1, H: 1, elev: null, ready: false };
+function mercPx(lat, lon) {
+  const n = 2 ** TILE.z;
+  const la = clamp(lat, -85, 85) * DEG;
+  return [((lon + 180) / 360 * n - TILE.x0) * 256, ((1 - Math.log(Math.tan(la) + 1 / Math.cos(la)) / Math.PI) / 2 * n - TILE.y0) * 256];
+}
+function elevAt(lat, lon) {
+  if (!HM.elev) return 0;
+  let [x, y] = mercPx(lat, lon);
+  x -= 0.5; y -= 0.5;
+  const W = HM.W, H = HM.H;
+  const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
+  const cx = (v) => clamp(v, 0, W - 1), cy = (v) => clamp(v, 0, H - 1);
+  const E = HM.elev;
+  const a = E[cy(y0) * W + cx(x0)], b = E[cy(y0) * W + cx(x0 + 1)], c = E[cy(y0 + 1) * W + cx(x0)], d = E[cy(y0 + 1) * W + cx(x0 + 1)];
+  return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
+}
+const altOfElev = (h) => (h > 0 ? h * 0.001 * S.landExag : h * 0.001 * S.depthExag);
+const surfAlt = (lat, lon) => altOfElev(elevAt(lat, lon));
+
+// ====== レンダラー ======
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+} catch (e) {
+  $('ld-err').classList.remove('hidden');
+  $('ld-err').textContent = 'このブラウザでは3D表示（WebGL2）が使えません。別のブラウザでお試しください。';
+  throw e;
+}
+const PR = Math.min(devicePixelRatio || 1, IS_MOBILE ? 1.5 : 2);
+renderer.setPixelRatio(PR);
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0x03060d, 1);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NoToneMapping;
+$('stage').appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+labelRenderer.domElement.className = 'labels';
+$('stage').appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 5, 200000);
+camera.position.set(0, 9000, 9000);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.rotateSpeed = 0.55;
+controls.panSpeed = 0.9;
+controls.zoomSpeed = 1.1;
+controls.screenSpacePanning = false;
+controls.minDistance = 60;
+controls.maxDistance = 16000;
+controls.maxPolarAngle = Math.PI * 0.56;
+controls.zoomToCursor = true;
+controls.autoRotateSpeed = 0.35;
+
+const composerTarget = new THREE.WebGLRenderTarget(innerWidth * PR, innerHeight * PR, { type: THREE.HalfFloatType, samples: IS_MOBILE ? 0 : 4 });
+const composer = new EffectComposer(renderer, composerTarget);
+composer.setPixelRatio(PR);
+composer.setSize(innerWidth, innerHeight);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.75, 0.45, 0.5);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+// ====== 共有ユニフォーム・GLSL ======
+const blankTex = (() => { const t = new THREE.DataTexture(new Uint16Array([0]), 1, 1, THREE.RedFormat, THREE.HalfFloatType); t.needsUpdate = true; return t; })();
+const U = {
+  uEnu: { value: ENU },
+  uR: { value: R_EARTH },
+  uHeight: { value: blankTex },
+  uTile: { value: new THREE.Vector4(TILE.x0, TILE.y0, TILE.x1 - TILE.x0 + 1, TILE.y1 - TILE.y0 + 1) },
+  uZ2: { value: 2 ** TILE.z },
+  uLandExag: { value: S.landExag },
+  uDepthExag: { value: S.depthExag },
+};
+const GLSL_COMMON = /* glsl */`
+#define PI 3.141592653589793
+uniform mat3 uEnu;
+uniform float uR;
+uniform sampler2D uHeight;
+uniform vec4 uTile;
+uniform float uZ2;
+uniform float uLandExag;
+uniform float uDepthExag;
+vec3 ecefUnit(vec2 ll) {
+  float la = radians(ll.y), lo = radians(ll.x), c = cos(la);
+  return vec3(c * cos(lo), c * sin(lo), sin(la));
+}
+vec3 toLocal(vec2 ll, float alt) {
+  vec3 p = uEnu * (ecefUnit(ll) * (uR + alt));
+  p.y -= uR;
+  return p;
+}
+vec2 mercUV(vec2 ll) {
+  float x = (ll.x + 180.0) / 360.0 * uZ2;
+  float la = radians(clamp(ll.y, -85.0, 85.0));
+  float y = (1.0 - log(max(tan(la) + 1.0 / cos(la), 1e-6)) / PI) * 0.5 * uZ2;
+  return vec2((x - uTile.x) / uTile.z, (y - uTile.y) / uTile.w);
+}
+float elevAt(vec2 ll) { return textureLod(uHeight, mercUV(ll), 0.0).r; }
+float altOf(float h) { return h > 0.0 ? h * 0.001 * uLandExag : h * 0.001 * uDepthExag; }
+`;
+
+// ====== 背景（宇宙） ======
+const sky = new THREE.Group();
+scene.add(sky);
+{
+  const g = new THREE.SphereGeometry(90000, 32, 16);
+  const m = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, depthTest: false,
+    vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `varying vec3 vDir;
+      void main(){
+        float h = vDir.y;
+        vec3 top = vec3(0.004, 0.008, 0.02), hor = vec3(0.016, 0.03, 0.065), bot = vec3(0.002, 0.003, 0.008);
+        vec3 c = h > 0.0 ? mix(hor, top, pow(clamp(h, 0.0, 1.0), 0.55)) : mix(hor, bot, pow(clamp(-h, 0.0, 1.0), 0.35));
+        gl_FragColor = vec4(c, 1.0);
+      }`,
+  });
+  const mesh = new THREE.Mesh(g, m);
+  mesh.renderOrder = -100;
+  mesh.frustumCulled = false;
+  sky.add(mesh);
+  const N = 2600, pos = new Float32Array(N * 3), col = new Float32Array(N * 3), v = new THREE.Vector3();
+  for (let i = 0; i < N; i++) {
+    v.randomDirection().multiplyScalar(80000);
+    pos.set([v.x, v.y, v.z], i * 3);
+    const b = Math.pow(Math.random(), 3) * 0.55 + 0.05;
+    const tint = Math.random();
+    col.set([b * (0.8 + 0.2 * tint), b * 0.9, b * (1.0 + 0.2 * (1 - tint))], i * 3);
+  }
+  const sg = new THREE.BufferGeometry();
+  sg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  sg.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const stars = new THREE.Points(sg, new THREE.PointsMaterial({ size: 1.6, sizeAttenuation: false, vertexColors: true, depthWrite: false, depthTest: false, transparent: true, blending: THREE.AdditiveBlending }));
+  stars.renderOrder = -99;
+  stars.frustumCulled = false;
+  sky.add(stars);
+}
+
+// ====== 地形 ======
+const terrainU = {
+  ...U,
+  uColorTex: { value: null },
+  uPrefId: { value: null },
+  uPrefCol: { value: null },
+  uPrefFade: { value: 0 },
+  uWaveHypo: { value: [0, 1, 2, 3].map(() => new THREE.Vector4()) },
+  uWaveRad: { value: [0, 1, 2, 3].map(() => new THREE.Vector4()) },
+  uGrid: { value: 1 },
+  uReveal: { value: 0 },
+};
+{
+  const pid = new THREE.DataTexture(new Uint8Array([0]), 1, 1, THREE.RedFormat); pid.needsUpdate = true;
+  terrainU.uPrefId.value = pid;
+}
+const prefColData = new Uint8Array(64 * 4);
+const prefColTex = new THREE.DataTexture(prefColData, 64, 1, THREE.RGBAFormat);
+prefColTex.colorSpace = THREE.SRGBColorSpace;
+prefColTex.needsUpdate = true;
+terrainU.uPrefCol.value = prefColTex;
+
+const terrainMat = new THREE.ShaderMaterial({
+  uniforms: terrainU,
+  side: THREE.DoubleSide,
+  vertexShader: GLSL_COMMON + /* glsl */`
+    attribute vec2 aLL;
+    varying vec2 vLL;
+    varying vec2 vUV;
+    void main() {
+      vUV = mercUV(aLL);
+      vLL = aLL;
+      float h = textureLod(uHeight, vUV, 0.0).r;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(toLocal(aLL, altOf(h)), 1.0);
+    }`,
+  fragmentShader: GLSL_COMMON + /* glsl */`
+    uniform sampler2D uColorTex;
+    uniform sampler2D uPrefId;
+    uniform sampler2D uPrefCol;
+    uniform float uPrefFade;
+    uniform vec4 uWaveHypo[4];
+    uniform vec4 uWaveRad[4];
+    uniform float uGrid;
+    uniform float uReveal;
+    varying vec2 vLL;
+    varying vec2 vUV;
+    float lineAA(float v, float w) { return 1.0 - smoothstep(0.5, 1.5, abs(fract(v - 0.5) - 0.5) / max(w, 1e-5)); }
+    void main() {
+      vec3 col = texture2D(uColorTex, vUV).rgb;
+      float h = texture2D(uHeight, vUV).r;
+      // 海岸線（標高0mを横切る画素だけを光らせる）
+      float fw = max(fwidth(h), 1e-3);
+      float coast = 1.0 - smoothstep(0.3, 1.1, abs(h) / fw);
+      col += vec3(0.20, 0.62, 0.95) * coast * 0.42;
+      // 等深線（海・1000mごと。0mは海岸線と重なるので描かない）
+      if (h < -500.0) {
+        float c = -h / 1000.0;
+        float fc = fwidth(c);
+        float cont = lineAA(c, fc) * (1.0 - smoothstep(0.08, 0.35, fc));
+        col += vec3(0.10, 0.22, 0.40) * cont * 0.2;
+      }
+      // 緯線・経線（5度ごと）
+      vec2 g = vLL / 5.0;
+      vec2 fg = fwidth(g);
+      float grid = max(lineAA(g.x, fg.x), lineAA(g.y, fg.y));
+      col = mix(col, vec3(0.45, 0.65, 1.0), grid * 0.07 * uGrid);
+      // 都道府県の震度（陸地だけを陰影を残したまま色づける）
+      float pid = texture2D(uPrefId, vUV).r * 255.0;
+      if (pid > 0.5 && uPrefFade > 0.0 && h > -30.0) {
+        vec4 pc = texture2D(uPrefCol, vec2((floor(pid + 0.5) + 0.5) / 64.0, 0.5));
+        vec3 tinted = col * (0.45 + pc.rgb * 1.7) + pc.rgb * 0.035;
+        col = mix(col, tinted, pc.a * 0.75 * uPrefFade);
+      }
+      // P波・S波が地表に届いた位置
+      vec3 sp = ecefUnit(vLL) * uR;
+      for (int i = 0; i < 4; i++) {
+        vec4 hy = uWaveHypo[i];
+        if (hy.w < 0.5) continue;
+        vec4 wr = uWaveRad[i];
+        float d = distance(sp, hy.xyz);
+        float px = max(fwidth(d), 0.05);
+        float w = max(px * 1.4, 1.2);
+        float qp = (d - wr.x) / w;
+        float qs = (d - wr.y) / w;
+        float ringP = wr.x > 0.0 ? exp(-qp * qp) : 0.0;
+        float ringS = wr.y > 0.0 ? exp(-qs * qs) : 0.0;
+        float inS = wr.y > d ? exp(-(wr.y - d) / max(wr.y * 0.12, 3.0)) : 0.0;
+        float inP = (wr.x > d && d > wr.y) ? 1.0 : 0.0;
+        col += (vec3(0.20, 0.55, 1.0) * (ringP * 1.3 + inP * 0.02) + vec3(1.0, 0.36, 0.10) * (ringS * 1.7 + inS * 0.14)) * wr.z;
+      }
+      col *= uReveal;
+      if (!gl_FrontFacing) col = vec3(0.012, 0.018, 0.03);
+      gl_FragColor = vec4(col, 1.0);
+    }`,
+});
+const terrain = new THREE.Mesh(new THREE.BufferGeometry(), terrainMat);
+terrain.frustumCulled = false;
+terrain.renderOrder = 0;
+scene.add(terrain);
+
+function buildTerrainGeometry(step) {
+  const nLon = Math.ceil((REGION.lonMax - REGION.lonMin) / step), nLat = Math.ceil((REGION.latMax - REGION.latMin) / step);
+  const cols = nLon + 1, rows = nLat + 1;
+  const ll = new Float32Array(cols * rows * 2), pos = new Float32Array(cols * rows * 3);
+  const v = new THREE.Vector3();
+  for (let j = 0; j < rows; j++) {
+    const lat = REGION.latMax - (REGION.latMax - REGION.latMin) * j / nLat;
+    for (let i = 0; i < cols; i++) {
+      const lon = REGION.lonMin + (REGION.lonMax - REGION.lonMin) * i / nLon;
+      const k = j * cols + i;
+      ll[k * 2] = lon; ll[k * 2 + 1] = lat;
+      toLocal(lat, lon, 0, v);
+      pos[k * 3] = v.x; pos[k * 3 + 1] = v.y; pos[k * 3 + 2] = v.z;
+    }
+  }
+  const idx = new Uint32Array(nLon * nLat * 6);
+  let p = 0;
+  for (let j = 0; j < nLat; j++) for (let i = 0; i < nLon; i++) {
+    const a = j * cols + i, b = a + 1, c = a + cols, d = c + 1;
+    idx[p++] = a; idx[p++] = c; idx[p++] = b;
+    idx[p++] = b; idx[p++] = c; idx[p++] = d;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('aLL', new THREE.BufferAttribute(ll, 2));
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  return g;
+}
+
+async function loadTileImage(url) {
+  const res = await fetch(url, { mode: 'cors' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const blob = await res.blob();
+  try { return await createImageBitmap(blob, { colorSpaceConversion: 'none', premultiplyAlpha: 'none' }); }
+  catch { return await createImageBitmap(blob); }
+}
+
+async function loadTerrain(onProgress) {
+  const nx = TILE.x1 - TILE.x0 + 1, ny = TILE.y1 - TILE.y0 + 1;
+  const W = nx * 256, H = ny * 256;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d', { willReadFrequently: true });
+  const jobs = [];
+  for (let y = TILE.y0; y <= TILE.y1; y++) for (let x = TILE.x0; x <= TILE.x1; x++) jobs.push({ x, y });
+  let done = 0, failed = 0;
+  await Promise.all(jobs.map(async ({ x, y }) => {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const img = await loadTileImage(TILE_URL(TILE.z, x, y));
+        ctx.drawImage(img, (x - TILE.x0) * 256, (y - TILE.y0) * 256);
+        img.close?.();
+        break;
+      } catch (e) { if (attempt === 1) failed++; }
+    }
+    onProgress(++done, jobs.length);
+  }));
+  const px = ctx.getImageData(0, 0, W, H).data;
+  const elev = new Float32Array(W * H);
+  for (let i = 0, j = 0; i < W * H; i++, j += 4) {
+    elev[i] = px[j + 3] < 250 ? -4000 : px[j] * 256 + px[j + 1] + px[j + 2] / 256 - 32768;
+  }
+  cv.width = cv.height = 1;
+  Object.assign(HM, { W, H, elev, ready: true, failed, total: jobs.length });
+
+  // 標高テクスチャ（半精度・線形補間）
+  const half = new Uint16Array(W * H);
+  for (let i = 0; i < W * H; i++) half[i] = THREE.DataUtils.toHalfFloat(clamp(elev[i], -11000, 9000));
+  const ht = new THREE.DataTexture(half, W, H, THREE.RedFormat, THREE.HalfFloatType);
+  ht.minFilter = ht.magFilter = THREE.LinearFilter;
+  ht.wrapS = ht.wrapT = THREE.ClampToEdgeWrapping;
+  ht.generateMipmaps = false;
+  ht.needsUpdate = true;
+  U.uHeight.value = ht;
+  terrainU.uColorTex.value = bakeTerrainColor();
+}
+
+// 標高の色と陰影をあらかじめ焼き込む（北西から光を当てた陰影起伏）
+function bakeTerrainColor() {
+  const { W, H, elev } = HM;
+  const out = new Uint8Array(W * H * 4);
+  const n = 2 ** TILE.z;
+  const alt = 40 * DEG, az = 315 * DEG;
+  const Lx = Math.sin(az) * Math.cos(alt), Ly = Math.cos(az) * Math.cos(alt), Lz = Math.sin(alt);
+  const SEA = [[0, [0.10, 0.27, 0.36]], [120, [0.075, 0.215, 0.315]], [1000, [0.05, 0.16, 0.26]], [3000, [0.035, 0.115, 0.205]], [6000, [0.022, 0.07, 0.14]], [9500, [0.012, 0.035, 0.085]]];
+  const LAND = [[0, [0.16, 0.26, 0.20]], [250, [0.19, 0.30, 0.21]], [700, [0.27, 0.32, 0.22]], [1400, [0.36, 0.33, 0.25]], [2300, [0.47, 0.44, 0.40]], [3200, [0.78, 0.78, 0.80]]];
+  const ramp = (stops, x) => {
+    if (x <= stops[0][0]) return stops[0][1];
+    for (let i = 0; i < stops.length - 1; i++) {
+      const [x0, c0] = stops[i], [x1, c1] = stops[i + 1];
+      if (x <= x1) { const t = (x - x0) / (x1 - x0); return [lerp(c0[0], c1[0], t), lerp(c0[1], c1[1], t), lerp(c0[2], c1[2], t)]; }
+    }
+    return stops[stops.length - 1][1];
+  };
+  // 10mごとの色表
+  const LUT_MIN = -11000, LUT_N = 2001, lut = new Float32Array(LUT_N * 3);
+  for (let i = 0; i < LUT_N; i++) {
+    const h = LUT_MIN + i * 10;
+    const c = h <= 0 ? ramp(SEA, -h) : ramp(LAND, h);
+    lut[i * 3] = c[0]; lut[i * 3 + 1] = c[1]; lut[i * 3 + 2] = c[2];
+  }
+  for (let y = 0; y < H; y++) {
+    const my = (TILE.y0 + (y + 0.5) / 256) / n;
+    const lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * my)));
+    const mpp = 40075016.686 * Math.cos(lat) / (256 * n);
+    const yu = Math.max(y - 1, 0) * W, yd = Math.min(y + 1, H - 1) * W, yr = y * W;
+    for (let x = 0; x < W; x++) {
+      const i = yr + x;
+      const h = elev[i];
+      const k = h > 0 ? 6.5 : 14;
+      const dzdx = (elev[yr + Math.min(x + 1, W - 1)] - elev[yr + Math.max(x - 1, 0)]) / (2 * mpp) * k;
+      const dzdy = (elev[yu + x] - elev[yd + x]) / (2 * mpp) * k;
+      const inv = 1 / Math.sqrt(dzdx * dzdx + dzdy * dzdy + 1);
+      const shade = Math.max(0, (-dzdx * Lx - dzdy * Ly + Lz) * inv);
+      const li = clamp(Math.round((h - LUT_MIN) / 10), 0, LUT_N - 1) * 3;
+      const s = h > 0 ? 0.28 + 1.0 * shade : 0.45 + 0.72 * shade;
+      out[i * 4] = clamp(lut[li] * s * 255, 0, 255);
+      out[i * 4 + 1] = clamp(lut[li + 1] * s * 255, 0, 255);
+      out[i * 4 + 2] = clamp(lut[li + 2] * s * 255, 0, 255);
+      out[i * 4 + 3] = 255;
+    }
+  }
+  const tex = new THREE.DataTexture(out, W, H, THREE.RGBAFormat);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.generateMipmaps = true;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  tex.needsUpdate = true;
+  return tex;
+}
+
+// ====== 地下の壁（深さの目盛り） ======
+const wallU = { ...U, uReveal: terrainU.uReveal };
+const wallMat = new THREE.ShaderMaterial({
+  uniforms: wallU,
+  transparent: true, depthWrite: false, side: THREE.DoubleSide,
+  vertexShader: GLSL_COMMON + /* glsl */`
+    attribute vec2 aLL; attribute float aT; attribute float aAxis;
+    varying float vDepth; varying vec2 vLL; varying float vAxis;
+    void main() {
+      float top = altOf(elevAt(aLL));
+      float bot = -${MAX_DEPTH.toFixed(1)} * uDepthExag;
+      float alt = mix(top, bot, aT);
+      vDepth = -alt / uDepthExag;
+      vLL = aLL; vAxis = aAxis;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(toLocal(aLL, alt), 1.0);
+    }`,
+  fragmentShader: /* glsl */`
+    uniform float uReveal;
+    varying float vDepth; varying vec2 vLL; varying float vAxis;
+    float lineAA(float v, float w) { return 1.0 - smoothstep(0.5, 1.5, abs(fract(v - 0.5) - 0.5) / max(w, 1e-5)); }
+    void main() {
+      float d = max(vDepth, 0.0);
+      float t = clamp(d / ${MAX_DEPTH.toFixed(1)}, 0.0, 1.0);
+      // 浅いところは青、深いところ（高温のマントル）はわずかに赤み
+      vec3 c = mix(vec3(0.020, 0.050, 0.110), vec3(0.070, 0.025, 0.050), t);
+      float a = mix(0.05, 0.13, t);
+      float q = d / 100.0;
+      // 底面（ちょうど700km）には深さの線を引かない
+      float line = lineAA(q, fwidth(q)) * step(0.5, d) * step(vAxis, 1.5);
+      vec2 g = vLL / 5.0;
+      vec2 fg = fwidth(g);
+      float vl = vAxis < 0.5 ? lineAA(g.y, fg.y) : (vAxis < 1.5 ? lineAA(g.x, fg.x) : max(lineAA(g.x, fg.x), lineAA(g.y, fg.y)));
+      vec3 col = c + vec3(0.30, 0.48, 0.85) * (line * 0.22 + vl * 0.08);
+      gl_FragColor = vec4(col, (a + line * 0.16 + vl * 0.05) * uReveal);
+    }`,
+});
+const walls = new THREE.Mesh(new THREE.BufferGeometry(), wallMat);
+walls.frustumCulled = false;
+walls.renderOrder = 2;
+scene.add(walls);
+function buildWalls() {
+  const ll = [], t = [], axis = [], idx = [];
+  const strip = (pts, ax) => {
+    const base = t.length;
+    for (const [lon, lat] of pts) { ll.push(lon, lat, lon, lat); t.push(0, 1); axis.push(ax, ax); }
+    for (let i = 0; i < pts.length - 1; i++) { const a = base + i * 2; idx.push(a, a + 1, a + 2, a + 2, a + 1, a + 3); }
+  };
+  const N = 240, { lonMin, lonMax, latMin, latMax } = REGION;
+  const lons = Array.from({ length: N + 1 }, (_, i) => lonMin + (lonMax - lonMin) * i / N);
+  const lats = Array.from({ length: N + 1 }, (_, i) => latMin + (latMax - latMin) * i / N);
+  strip(lons.map((lon) => [lon, latMin]), 1);
+  strip(lons.map((lon) => [lon, latMax]), 1);
+  strip(lats.map((lat) => [lonMin, lat]), 0);
+  strip(lats.map((lat) => [lonMax, lat]), 0);
+  // 底面
+  const M = 48, base = t.length;
+  for (let j = 0; j <= M; j++) for (let i = 0; i <= M; i++) { ll.push(lonMin + (lonMax - lonMin) * i / M, latMin + (latMax - latMin) * j / M); t.push(1); axis.push(2); }
+  for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) { const a = base + j * (M + 1) + i; idx.push(a, a + 1, a + M + 1, a + 1, a + M + 2, a + M + 1); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(t.length * 3), 3));
+  g.setAttribute('aLL', new THREE.BufferAttribute(new Float32Array(ll), 2));
+  g.setAttribute('aT', new THREE.BufferAttribute(new Float32Array(t), 1));
+  g.setAttribute('aAxis', new THREE.BufferAttribute(new Float32Array(axis), 1));
+  g.setIndex(idx);
+  walls.geometry.dispose();
+  walls.geometry = g;
+}
+
+// ====== 線（県境・海溝・枠・震源への縦線） ======
+function makeLineMaterial({ time = false, depthTest = true, bias = 0 } = {}) {
+  return new THREE.ShaderMaterial({
+    uniforms: { ...U, uLift: sharedLift, uReveal: terrainU.uReveal, uT: timeU.uT, uT0: timeU.uT0, uOpacity: { value: 1 } },
+    defines: time ? { USE_TIME: '' } : {},
+    transparent: true, depthWrite: false, depthTest,
+    vertexShader: GLSL_COMMON + /* glsl */`
+      attribute vec2 aLL; attribute float aDepth; attribute vec4 aColor;
+      #ifdef USE_TIME
+      attribute float aTime;
+      uniform float uT; uniform float uT0;
+      #endif
+      uniform float uLift;
+      varying vec4 vColor;
+      void main() {
+        float alt = aDepth < -0.5 ? altOf(elevAt(aLL)) + uLift : -aDepth * uDepthExag;
+        vColor = aColor;
+        #ifdef USE_TIME
+        vColor.a *= step(uT0, aTime) * step(aTime, uT);
+        #endif
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(toLocal(aLL, alt), 1.0);
+        gl_Position.z -= ${bias.toExponential(2)} * gl_Position.w;
+      }`,
+    fragmentShader: /* glsl */`
+      uniform float uReveal; uniform float uOpacity;
+      varying vec4 vColor;
+      void main() { gl_FragColor = vec4(vColor.rgb, vColor.a * uReveal * uOpacity); }`,
+  });
+}
+const sharedLift = { value: 2 };
+const timeU = { uT: { value: 0 }, uT0: { value: -1e12 }, uNow: { value: 0 }, uFlash: { value: 1 }, uClock: { value: 0 } };
+function lineGeometry(segs) {
+  // segs: [lon, lat, depth, r, g, b, a, (time)] × 2 per segment
+  const n = segs.length;
+  const ll = new Float32Array(n * 2), dep = new Float32Array(n), col = new Float32Array(n * 4), tm = new Float32Array(n);
+  segs.forEach((s, i) => { ll[i * 2] = s[0]; ll[i * 2 + 1] = s[1]; dep[i] = s[2]; col.set([s[3], s[4], s[5], s[6]], i * 4); tm[i] = s[7] ?? 0; });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  g.setAttribute('aLL', new THREE.BufferAttribute(ll, 2));
+  g.setAttribute('aDepth', new THREE.BufferAttribute(dep, 1));
+  g.setAttribute('aColor', new THREE.BufferAttribute(col, 4));
+  g.setAttribute('aTime', new THREE.BufferAttribute(tm, 1));
+  return g;
+}
+const frameLines = new THREE.LineSegments(new THREE.BufferGeometry(), makeLineMaterial({ bias: 1e-6 }));
+const borderLines = new THREE.LineSegments(new THREE.BufferGeometry(), makeLineMaterial({ bias: 4e-6 }));
+const trenchLines = new THREE.LineSegments(new THREE.BufferGeometry(), makeLineMaterial({ bias: 4e-6 }));
+const dropLines = new THREE.LineSegments(new THREE.BufferGeometry(), makeLineMaterial({ time: true, depthTest: false }));
+for (const [o, r] of [[frameLines, 3], [borderLines, 3], [trenchLines, 3], [dropLines, 4]]) { o.frustumCulled = false; o.renderOrder = r; scene.add(o); }
+
+function buildFrameLines() {
+  const segs = [], c = [0.45, 0.62, 1.0, 0.42], { lonMin, lonMax, latMin, latMax } = REGION;
+  const edge = (a, b, depth, n) => { for (let i = 0; i < n; i++) { const t0 = i / n, t1 = (i + 1) / n; segs.push([lerp(a[0], b[0], t0), lerp(a[1], b[1], t0), depth, ...c], [lerp(a[0], b[0], t1), lerp(a[1], b[1], t1), depth, ...c]); } };
+  const corners = [[lonMin, latMin], [lonMax, latMin], [lonMax, latMax], [lonMin, latMax]];
+  for (let i = 0; i < 4; i++) {
+    const a = corners[i], b = corners[(i + 1) % 4];
+    edge(a, b, -1, 160);
+    edge(a, b, MAX_DEPTH, 80);
+    segs.push([a[0], a[1], -1, ...c], [a[0], a[1], MAX_DEPTH, ...c]);
+  }
+  frameLines.geometry.dispose();
+  frameLines.geometry = lineGeometry(segs);
+}
+function buildTrenchLines() {
+  const segs = [], c = [1.0, 0.36, 0.26, 0.85];
+  for (const pts of Object.values(TRENCHES)) {
+    // 補間して細かくする（地形に沿わせるため）
+    const P = [];
+    for (let i = 0; i < pts.length - 2; i += 2) {
+      for (let k = 0; k < 4; k++) { const t = k / 4; P.push([lerp(pts[i], pts[i + 2], t), lerp(pts[i + 1], pts[i + 3], t)]); }
+    }
+    P.push([pts[pts.length - 2], pts[pts.length - 1]]);
+    for (let i = 0; i < P.length - 1; i++) segs.push([P[i][0], P[i][1], -1, ...c], [P[i + 1][0], P[i + 1][1], -1, ...c]);
+  }
+  trenchLines.geometry.dispose();
+  trenchLines.geometry = lineGeometry(segs);
+}
+
+// ====== 震源（点） ======
+const POINT_VS = GLSL_COMMON + /* glsl */`
+  attribute vec2 aLL; attribute float aDepth; attribute vec3 aColor; attribute float aSize; attribute float aTime;
+  uniform float uT, uT0, uNow, uFlash, uClock, uZoom, uPR, uSel, uHover, uRecentOn;
+  varying vec3 vColor; varying float vAlpha; varying float vFlash; varying float vRecent; varying float vSel; varying float vScale;
+  void main() {
+    vec4 mv = modelViewMatrix * vec4(toLocal(aLL, -aDepth * uDepthExag), 1.0);
+    gl_Position = projectionMatrix * mv;
+    float age = uT - aTime;
+    float vis = step(uT0, aTime) * step(0.0, age);
+    float flash = vis * exp(-max(age, 0.0) / max(uFlash, 1e-3));
+    float recent = uRecentOn * vis * clamp(1.0 - (uNow - aTime) / 86400.0, 0.0, 1.0);
+    float idx = float(gl_VertexID);
+    float sel = (abs(idx - uSel) < 0.5 ? 1.0 : 0.0);
+    float hov = (abs(idx - uHover) < 0.5 ? 1.0 : 0.0);
+    vScale = 1.0 + recent * 1.3 + sel * 1.2;
+    float s = aSize * uZoom * (1.0 + 1.2 * flash + 0.35 * hov) * vScale;
+    gl_PointSize = clamp(s * uPR, 0.0, 160.0) * vis;
+    vColor = aColor * (1.0 + 0.6 * hov);
+    vAlpha = vis; vFlash = flash; vRecent = recent; vSel = sel;
+  }`;
+const POINT_FS = /* glsl */`
+  uniform float uIntensity, uClock, uRing, uReveal, uStyle;
+  varying vec3 vColor; varying float vAlpha; varying float vFlash; varying float vRecent; varying float vSel; varying float vScale;
+  void main() {
+    vec2 c = gl_PointCoord * 2.0 - 1.0;
+    float rr = length(c);
+    if (rr > 1.0) discard;
+    if (uStyle < 0.5) {
+      // 過去の震源：重なっても白飛びしない小さな点（通常の合成）
+      float disc = 1.0 - smoothstep(0.55, 1.0, rr);
+      float a = disc * 0.9 * vAlpha * uIntensity * uReveal;
+      if (a < 0.01) discard;
+      gl_FragColor = vec4(vColor * (0.9 + vFlash * 2.4) * mix(0.65, 1.0, uIntensity), a);
+      return;
+    }
+    // 最近の地震：縁取りのある円（重なっても色が保たれるよう通常の合成で重ねる）
+    float r = rr * vScale;
+    vec4 acc = vec4(0.0);
+    float glow = exp(-r * r * 1.1) * 0.22;
+    acc = vec4(vColor * glow, glow);
+    if (vRecent > 0.0) {
+      float ph = fract(uClock * 0.45);
+      float rad = 1.0 + ph * (vScale - 1.05);
+      float qr = (r - rad) / 0.12;
+      float ring = exp(-qr * qr) * (1.0 - ph) * vRecent * 0.9;
+      acc = vec4(vColor * ring, ring) + acc * (1.0 - ring);
+    }
+    float disc = 1.0 - smoothstep(0.78, 1.0, r);
+    float qe = (r - 0.82) / 0.1;
+    vec3 dc = mix(vColor * (1.0 + vFlash * 1.8), vec3(1.0), exp(-qe * qe) * 0.5);
+    float da = disc * 0.95;
+    acc = vec4(dc * da, da) + acc * (1.0 - da);
+    float qs = (r - (vScale - 0.22)) / 0.09;
+    float sel = vSel * exp(-qs * qs);
+    acc = vec4(vec3(1.0) * sel, sel) + acc * (1.0 - sel);
+    float a = acc.a * vAlpha * uIntensity * uReveal;
+    if (a < 0.01) discard;
+    gl_FragColor = vec4(acc.rgb / max(acc.a, 1e-4) * mix(0.7, 1.0, uIntensity), a);
+  }`;
+function makePointLayer(style) {
+  const u = {
+    ...U, uT: timeU.uT, uT0: timeU.uT0, uNow: timeU.uNow, uFlash: timeU.uFlash, uClock: timeU.uClock,
+    uZoom: sharedZoom, uPR: { value: PR }, uSel: { value: -1 }, uHover: { value: -1 }, uRecentOn: { value: style === 'jma' ? 1 : 0 },
+    uIntensity: { value: 1 }, uRing: { value: style === 'jma' ? 1 : 0 }, uReveal: terrainU.uReveal, uStyle: { value: style === 'jma' ? 1 : 0 },
+  };
+  const common = { vertexShader: POINT_VS, fragmentShader: POINT_FS, transparent: true, depthWrite: false, blending: THREE.NormalBlending };
+  // 地表より手前は通常、地面に隠れた部分は少し暗く「透かして」描く
+  const front = new THREE.ShaderMaterial({ ...common, uniforms: u, depthFunc: THREE.LessEqualDepth });
+  const behind = new THREE.ShaderMaterial({ ...common, uniforms: { ...u, uIntensity: { value: style === 'jma' ? 0.8 : 0.62 } }, depthFunc: THREE.GreaterDepth });
+  const geo = new THREE.BufferGeometry();
+  const a = new THREE.Points(geo, front), b = new THREE.Points(geo, behind);
+  for (const o of [a, b]) { o.frustumCulled = false; o.renderOrder = style === 'jma' ? 6 : 5; scene.add(o); }
+  return { style, u, objs: [a, b], geo, items: [], local: null };
+}
+const sharedZoom = { value: 1 };
+const usgsLayer = makePointLayer('usgs');
+const jmaLayer = makePointLayer('jma');
+
+function setPointData(layer, items, colorOf, sizeOf) {
+  const n = items.length;
+  const ll = new Float32Array(n * 2), dep = new Float32Array(n), col = new Float32Array(n * 3), size = new Float32Array(n), tm = new Float32Array(n);
+  const c = new THREE.Color();
+  items.forEach((e, i) => {
+    ll[i * 2] = e.lon; ll[i * 2 + 1] = e.lat;
+    dep[i] = e.depth ?? 10;
+    colorOf(e, c);
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+    size[i] = sizeOf(e);
+    tm[i] = (e.time - T_REF) / 1000;
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  g.setAttribute('aLL', new THREE.BufferAttribute(ll, 2));
+  g.setAttribute('aDepth', new THREE.BufferAttribute(dep, 1));
+  g.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
+  g.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
+  g.setAttribute('aTime', new THREE.BufferAttribute(tm, 1));
+  layer.geo.dispose();
+  layer.geo = g;
+  for (const o of layer.objs) o.geometry = g;
+  layer.items = items;
+  layer.local = null;
+}
+// 当たり判定用のローカル座標（深さの強調が変わったら作り直す）
+function layerLocal(layer) {
+  if (layer.local && layer.localExag === S.depthExag) return layer.local;
+  const n = layer.items.length, arr = new Float32Array(n * 3), v = new THREE.Vector3();
+  layer.items.forEach((e, i) => { toLocal(e.lat, e.lon, -(e.depth ?? 10) * S.depthExag, v); arr[i * 3] = v.x; arr[i * 3 + 1] = v.y; arr[i * 3 + 2] = v.z; });
+  layer.local = arr; layer.localExag = S.depthExag;
+  return arr;
+}
+
+const DEPTH_STOPS = [[0, '#ff4a2e'], [30, '#ff9d1f'], [70, '#ffe14a'], [150, '#58ee8c'], [300, '#2fc6ff'], [450, '#4d6bff'], [600, '#b15cff']].map(([d, h]) => [d, new THREE.Color(h)]);
+function depthColor(d, out) {
+  d = Math.max(0, d || 0);
+  for (let i = 0; i < DEPTH_STOPS.length - 1; i++) {
+    const [d0, c0] = DEPTH_STOPS[i], [d1, c1] = DEPTH_STOPS[i + 1];
+    if (d <= d1) return out.copy(c0).lerp(c1, (d - d0) / (d1 - d0));
+  }
+  return out.copy(DEPTH_STOPS[DEPTH_STOPS.length - 1][1]);
+}
+const SHINDO_LIN = SHINDO.map((s) => new THREE.Color(s.color));
+const usgsSize = (e) => clamp(2.2 * Math.pow(1.7, (e.mag ?? 4) - 4), 1.4, 30);
+const jmaSize = (e) => clamp(3.4 + 2.2 * Math.pow(1.6, (e.mag ?? 2.5) - 3), 4, 36);
+
+// ====== 震度観測点（柱） ======
+const stationU = { ...U, uReplayT: { value: 1e9 }, uRadius: { value: 3 }, uHScale: { value: 3 }, uReveal: terrainU.uReveal, uFade: { value: 1 } };
+const stationMat = new THREE.ShaderMaterial({
+  uniforms: stationU,
+  vertexShader: GLSL_COMMON + /* glsl */`
+    attribute vec2 iLL; attribute float iInt; attribute float iDelay; attribute float iElev; attribute vec3 iColor;
+    uniform float uReplayT, uRadius, uHScale;
+    varying vec3 vColor; varying float vTop; varying float vFlash; varying vec3 vN;
+    void main() {
+      float since = uReplayT - iDelay;
+      float g = clamp(since / 1.1, 0.0, 1.0);
+      g = 1.0 - (1.0 - g) * (1.0 - g) * (1.0 - g);
+      float h = (0.5 + iInt * 0.85) * uHScale * g;
+      float r = uRadius * step(0.0001, g);
+      float lo = radians(iLL.x);
+      vec3 up = uEnu * ecefUnit(iLL);
+      vec3 east = uEnu * vec3(-sin(lo), cos(lo), 0.0);
+      vec3 north = cross(up, east);
+      vec3 base = toLocal(iLL, altOf(iElev));
+      vec3 p = base + east * (position.x * r) + up * (position.y * h) + north * (position.z * r);
+      vColor = iColor;
+      vTop = position.y;
+      vFlash = since >= 0.0 ? exp(-since * 1.4) : 0.0;
+      vN = normalize(normalMatrix * (east * normal.x + up * normal.y + north * normal.z));
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+    }`,
+  fragmentShader: /* glsl */`
+    uniform float uReveal, uFade;
+    varying vec3 vColor; varying float vTop; varying float vFlash; varying vec3 vN;
+    void main() {
+      float l = 0.55 + 0.45 * max(dot(normalize(vN), normalize(vec3(0.35, 0.9, 0.45))), 0.0);
+      vec3 c = vColor * (0.35 + 0.75 * vTop) * l + vColor * vFlash * 2.2;
+      gl_FragColor = vec4(c * uReveal * uFade, 1.0);
+    }`,
+});
+const stationCyl = new THREE.CylinderGeometry(1, 1, 1, 8, 1);
+stationCyl.translate(0, 0.5, 0);
+const stationMesh = new THREE.Mesh(new THREE.InstancedBufferGeometry(), stationMat);
+stationMesh.frustumCulled = false;
+stationMesh.renderOrder = 1;
+scene.add(stationMesh);
+const StationState = { ev: null, list: [], local: null, localKey: '' };
+function setStations(ev, list) {
+  const n = list.length;
+  const ll = new Float32Array(n * 2), it = new Float32Array(n), dl = new Float32Array(n), el = new Float32Array(n), cl = new Float32Array(n * 3);
+  list.forEach((s, i) => {
+    ll[i * 2] = s.lon; ll[i * 2 + 1] = s.lat;
+    it[i] = s.s;
+    dl[i] = ev && ev.hasHypo ? hypoDist(ev.lat, ev.lon, ev.depth, s.lat, s.lon) / VS : 0;
+    s.delay = dl[i];
+    el[i] = elevAt(s.lat, s.lon);
+    const c = SHINDO_LIN[s.s];
+    cl[i * 3] = c.r; cl[i * 3 + 1] = c.g; cl[i * 3 + 2] = c.b;
+  });
+  // three.js は描画できる個数を最初の属性から覚えてしまうので、毎回ジオメトリを作り直す
+  const g = new THREE.InstancedBufferGeometry();
+  g.index = stationCyl.index;
+  g.setAttribute('position', stationCyl.attributes.position);
+  g.setAttribute('normal', stationCyl.attributes.normal);
+  g.setAttribute('iLL', new THREE.InstancedBufferAttribute(ll, 2));
+  g.setAttribute('iInt', new THREE.InstancedBufferAttribute(it, 1));
+  g.setAttribute('iDelay', new THREE.InstancedBufferAttribute(dl, 1));
+  g.setAttribute('iElev', new THREE.InstancedBufferAttribute(el, 1));
+  g.setAttribute('iColor', new THREE.InstancedBufferAttribute(cl, 3));
+  g.instanceCount = n;
+  stationMesh.geometry.dispose();
+  stationMesh.geometry = g;
+  stationMesh.visible = S.showStations && n > 0;
+  StationState.ev = ev; StationState.list = list; StationState.local = null;
+}
+setStations(null, []);
+
+// ====== 揺れの伝わり方（P波・S波） ======
+const shellGeo = new THREE.IcosahedronGeometry(1, 5);
+function makeShell(color) {
+  const m = new THREE.ShaderMaterial({
+    uniforms: {
+      uDepthExag: U.uDepthExag, uCenter: { value: new THREE.Vector3() }, uE: { value: new THREE.Vector3() }, uU: { value: new THREE.Vector3() }, uN: { value: new THREE.Vector3() },
+      uRadius: { value: 1 }, uDepthKm: { value: 10 }, uHypoLL: { value: new THREE.Vector2() }, uColor: { value: new THREE.Color(color) }, uAlpha: { value: 0 },
+      uBounds: { value: new THREE.Vector4(REGION.lonMin, REGION.lonMax, REGION.latMin, REGION.latMax) },
+    },
+    transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    vertexShader: /* glsl */`
+      uniform float uDepthExag, uRadius;
+      uniform vec3 uCenter, uE, uU, uN;
+      varying vec3 vOff; varying vec3 vNrm; varying vec3 vView;
+      void main() {
+        vec3 d = normalize(position);
+        vOff = d * uRadius;
+        vec3 wp = uCenter + uE * (d.x * uRadius) + uU * (d.y * uRadius * uDepthExag) + uN * (d.z * uRadius);
+        vec4 mv = modelViewMatrix * vec4(wp, 1.0);
+        vNrm = normalize(normalMatrix * (uE * d.x + uU * (d.y / max(uDepthExag, 0.01)) + uN * d.z));
+        vView = normalize(-mv.xyz);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */`
+      uniform float uDepthKm, uAlpha;
+      uniform vec2 uHypoLL;
+      uniform vec3 uColor;
+      uniform vec4 uBounds;
+      varying vec3 vOff; varying vec3 vNrm; varying vec3 vView;
+      void main() {
+        if (vOff.y - uDepthKm > 0.0) discard;
+        float lat = uHypoLL.y + vOff.z / 111.2;
+        float lon = uHypoLL.x + vOff.x / (111.2 * max(cos(radians(lat)), 0.05));
+        if (lon < uBounds.x || lon > uBounds.y || lat < uBounds.z || lat > uBounds.w) discard;
+        float f = clamp(1.0 - abs(dot(normalize(vNrm), normalize(vView))), 0.0, 1.0);
+        float rim = f * f * f * f;
+        gl_FragColor = vec4(uColor * (0.01 + rim * 0.3) * uAlpha, 1.0);
+      }`,
+  });
+  const mesh = new THREE.Mesh(shellGeo, m);
+  mesh.frustumCulled = false;
+  mesh.renderOrder = 7;
+  mesh.visible = false;
+  scene.add(mesh);
+  return mesh;
+}
+const WAVES = [];          // { lat, lon, depth, start, speed, maxR, realtime, originMs, kind }
+const shells = [0, 1, 2, 3].map(() => ({ p: makeShell('#3d8bff'), s: makeShell('#ff5a1f') }));
+function addWave(w) {
+  const ex = WAVES.findIndex((x) => x.key && x.key === w.key);
+  if (ex >= 0) WAVES.splice(ex, 1);
+  WAVES.push({ ...w, ecef: ecef(w.lat, w.lon, R_EARTH - (w.depth || 0), new THREE.Vector3()), born: performance.now() });
+  while (WAVES.length > 4) WAVES.shift();
+}
+function waveTime(w, nowPerf) {
+  return w.realtime ? (Date.now() - w.originMs) / 1000 : (nowPerf - w.start) / 1000 * w.speed;
+}
+function updateWaves(nowPerf) {
+  for (let i = WAVES.length - 1; i >= 0; i--) {
+    const w = WAVES[i], t = waveTime(w, nowPerf);
+    const rS = VS * t;
+    w.alpha = clamp(Math.min((nowPerf - w.born) / 400, 1) * (1 - (rS - w.maxR) / (w.maxR * 0.25)), 0, 1);
+    if (rS > w.maxR * 1.25 || w.dead) WAVES.splice(i, 1);
+  }
+  for (let i = 0; i < 4; i++) {
+    const w = WAVES[i], hv = terrainU.uWaveHypo.value[i], rv = terrainU.uWaveRad.value[i], sh = shells[i];
+    if (!w) { hv.w = 0; sh.p.visible = sh.s.visible = false; continue; }
+    const t = Math.max(0, waveTime(w, nowPerf));
+    hv.set(w.ecef.x, w.ecef.y, w.ecef.z, 1);
+    rv.set(VP * t, VS * t, w.alpha, 0);
+    const center = toLocal(w.lat, w.lon, -(w.depth || 0) * S.depthExag);
+    const b = basisAt(w.lat, w.lon);
+    for (const [mesh, r] of [[sh.p, VP * t], [sh.s, VS * t]]) {
+      const un = mesh.material.uniforms;
+      un.uCenter.value.copy(center); un.uE.value.copy(b.e); un.uU.value.copy(b.u); un.uN.value.copy(b.n).negate();
+      un.uRadius.value = Math.max(r, 0.01); un.uDepthKm.value = w.depth || 0; un.uHypoLL.value.set(w.lon, w.lat);
+      un.uAlpha.value = w.alpha * (r > 1 ? 1 : 0) * 0.9;
+      mesh.visible = r > 1 && w.alpha > 0.01;
+    }
+  }
+}
+
+// ====== ラベル ======
+const labelGroup = new THREE.Group();
+scene.add(labelGroup);
+const LABELS = { city: [], plate: [], trench: [], depth: [], me: null };
+function addLabel(html, cls, lat, lon, alt = 0, center = [0.5, 0.5]) {
+  const el = document.createElement('div');
+  el.className = cls;
+  el.innerHTML = html;
+  const o = new CSS2DObject(el);
+  o.center.set(center[0], center[1]);
+  o.userData = { lat, lon, alt };
+  labelGroup.add(o);
+  return o;
+}
+function placeLabel(o) {
+  const { lat, lon, alt, depth } = o.userData;
+  if (depth != null) toLocal(lat, lon, -depth * S.depthExag, o.position);
+  else toLocal(lat, lon, (alt === 'surface' ? surfAlt(lat, lon) : alt) + 1, o.position);
+}
+function buildLabels() {
+  for (const [n, la, lo] of CITIES) LABELS.city.push(addLabel(esc(n), 'lbl-city', la, lo, 'surface', [0, 0.5]));
+  for (const [n, la, lo] of FOREIGN) LABELS.city.push(addLabel(esc(n), 'lbl-city foreign', la, lo, 'surface', [0, 0.5]));
+  for (const [n, la, lo] of PLATES) LABELS.plate.push(addLabel(esc(n), 'lbl-plate', la, lo, 'surface'));
+  for (const [n, la, lo] of TRENCH_LABELS) LABELS.trench.push(addLabel(esc(n), 'lbl-trench', la, lo, 'surface'));
+  for (let d = 0; d <= MAX_DEPTH; d += 100) {
+    const o = addLabel(d === 0 ? '0 km' : `${d} km`, 'lbl-depth' + (d % 200 === 0 ? ' major' : ''), REGION.latMin, REGION.lonMin, 0, [0, 0.5]);
+    o.userData.depth = d;
+    LABELS.depth.push(o);
+  }
+  refreshLabels();
+}
+let depthCorner = -1;
+function refreshLabels() {
+  for (const o of labelGroup.children) placeLabel(o);
+  updateLabelVisibility();
+}
+function updateLabelVisibility() {
+  for (const o of LABELS.city) o.visible = S.showLabels;
+  for (const o of LABELS.plate) o.visible = S.showLabels && S.showPlates;
+  for (const o of LABELS.trench) o.visible = S.showPlates;
+  for (const o of LABELS.depth) o.visible = S.showWalls;
+}
+function updateDepthCorner() {
+  const { lonMin, lonMax, latMin, latMax } = REGION;
+  const corners = [[latMin, lonMin], [latMin, lonMax], [latMax, lonMax], [latMax, lonMin]];
+  let best = 0, bd = Infinity;
+  const v = new THREE.Vector3();
+  corners.forEach(([la, lo], i) => { toLocal(la, lo, 0, v); const d = v.distanceToSquared(camera.position); if (d < bd) { bd = d; best = i; } });
+  if (best !== depthCorner) {
+    depthCorner = best;
+    for (const o of LABELS.depth) { o.userData.lat = corners[best][0]; o.userData.lon = corners[best][1]; placeLabel(o); }
+  }
+}
+
+// 選んだ地震・最新の地震のマーカー
+function makeMarker(cls) {
+  const el = document.createElement('div');
+  el.className = 'focus-mark ' + cls;
+  el.innerHTML = '<div class="fm-ring"></div><div class="fm-ring"></div><div class="fm-ring"></div><div class="fm-x"></div><div class="focus-card"></div>';
+  const o = new CSS2DObject(el);
+  o.visible = false;
+  scene.add(o);
+  return o;
+}
+const focusMarker = makeMarker('selected');
+const latestMarker = makeMarker('latest');
+function setMarker(m, ev) {
+  if (!ev || !ev.hasHypo || !ev.inRegion) { m.visible = false; m.userData.ev = null; return; }
+  m.userData.ev = ev;
+  m.visible = true;
+  const col = SHINDO[ev.maxi]?.color || '#fff';
+  m.element.style.setProperty('--c', ev.maxi ? col : '#dfe8f5');
+  m.element.querySelector('.focus-card').innerHTML = `${badgeHTML(ev.maxi)}<div><div class="fc-name">${esc(ev.name)}</div><div class="fc-meta num">${fmtShort(ev.time)} · ${fmtMag(ev.mag)} · ${fmtDepth(ev.depth)}</div></div>`;
+  toLocal(ev.lat, ev.lon, surfAlt(ev.lat, ev.lon) + 1, m.position);
+}
+
+// ====== データ置き場 ======
+const Store = {
+  events: new Map(),     // 気象庁・P2P の地震
+  list: [],              // 新しい順
+  usgs: [],              // 過去の震源
+  usgsKeys: new Set(),
+  usgsLoaded: { base: false, ext: false },
+  topo: null,
+  loadedAt: Date.now(),
+};
+const State = { selected: null, hover: null, lastInteract: 0, replay: null, eew: null };
+
+// ---- 気象庁 list.json ----
+function ingestJmaList(list) {
+  const byEid = new Map();
+  for (const r of list) {
+    if (!r || !r.eid || !/震度|震源|遠地/.test(r.ttl || '')) continue;
+    if (!byEid.has(r.eid)) byEid.set(r.eid, []);
+    byEid.get(r.eid).push(r);
+  }
+  const fresh = [];
+  for (const [eid, reps] of byEid) {
+    reps.sort((a, b) => String(a.ctt).localeCompare(String(b.ctt)));
+    const last = reps[reps.length - 1];
+    const hy = [...reps].reverse().find((r) => parseCod(r.cod));
+    const cod = hy ? parseCod(hy.cod) : null;
+    const detail = [...reps].reverse().find((r) => /VXSE5k/.test(r.json || ''));
+    const intSrc = detail || [...reps].reverse().find((r) => Array.isArray(r.int) && r.int.length);
+    let maxi = 0;
+    for (const r of reps) maxi = Math.max(maxi, shindoJma(r.maxi));
+    const prefs = new Map();
+    for (const p of intSrc?.int || []) { const s = shindoJma(p.maxi); if (s) prefs.set(+p.code, s); }
+    const magStr = String((hy || last).mag ?? '');
+    const ev = {
+      id: 'jma:' + eid, eid, src: 'jma',
+      time: Date.parse((hy || last).at) || Date.parse(last.rdt) || Date.now(),
+      name: (hy || last).anm || '震源を調査中',
+      lat: cod?.lat ?? null, lon: cod?.lon ?? null, depth: cod?.depth ?? null,
+      mag: /^\d+(\.\d+)?$/.test(magStr) ? +magStr : null,
+      maxi, prefs, foreign: reps.some((r) => r.ttl === '遠地地震に関する情報'),
+      detailFile: detail?.json || null, reportTitle: last.ttl,
+    };
+    ev.hasHypo = ev.lat != null && ev.lon != null;
+    ev.inRegion = ev.hasHypo && inRegion(ev.lat, ev.lon);
+    const old = Store.events.get(ev.id);
+    if (old) {
+      if (old.detailFile !== ev.detailFile) { old.stations = null; }
+      Object.assign(old, ev, { stations: old.detailFile === ev.detailFile ? old.stations : null, comment: old.comment, points: old.points });
+    } else {
+      // P2P で先に届いていた同じ地震を置き換える
+      for (const [k, e] of Store.events) {
+        if (e.src === 'p2p' && sameQuake(e, ev)) { ev.points = e.points; ev.tsunami = e.tsunami; ev.isNew = e.isNew; Store.events.delete(k); if (State.selected === e) State.selected = ev; }
+      }
+      Store.events.set(ev.id, ev);
+      fresh.push(ev);
+    }
+  }
+  return fresh;
+}
+function sameQuake(a, b) {
+  if (Math.abs(a.time - b.time) > 90e3) return false;
+  if (a.hasHypo && b.hasHypo) return kmBetween(a.lat, a.lon, b.lat, b.lon) < 60;
+  return true;
+}
+async function fetchJmaList() {
+  const r = await fetch(JMA_LIST, { cache: 'no-cache' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return ingestJmaList(await r.json());
+}
+async function loadStations(ev) {
+  if (!ev.detailFile) return null;
+  if (ev.stations) return ev.stations;
+  const r = await fetch(JMA_DATA + ev.detailFile);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json();
+  const obs = d?.Body?.Intensity?.Observation;
+  const st = [];
+  for (const p of obs?.Pref || []) for (const a of p.Area || []) for (const c of a.City || []) for (const s of c.IntensityStation || []) {
+    const k = shindoJma(s.Int);
+    if (!k || !s.latlon) continue;
+    st.push({ name: String(s.Name || '').replace(/[＊*]$/, ''), pref: p.Name, s: k, lat: +s.latlon.lat, lon: +s.latlon.lon });
+  }
+  for (const p of obs?.Pref || []) { const k = shindoJma(p.MaxInt); if (k) ev.prefs.set(+p.Code, k); }
+  ev.comment = d?.Body?.Comments?.ForecastComment?.Text || ev.comment;
+  st.sort((a, b) => b.s - a.s);
+  ev.stations = st;
+  return st;
+}
+
+// ---- P2P地震情報 ----
+const P2P_TYPE = { ScalePrompt: '震度速報', Destination: '震源に関する情報', ScaleAndDestination: '震度・震源に関する情報', DetailScale: '各地の震度に関する情報', Foreign: '遠地地震に関する情報', Other: '地震情報' };
+const TSUNAMI_TXT = { None: 'この地震による津波の心配はありません。', Unknown: '津波の有無は不明です。', Checking: '津波の有無を調査中です。', NonEffective: '若干の海面変動が予想されますが、被害の心配はありません。', Watch: '津波注意報を発表中です。', Warning: '津波警報等を発表中です。' };
+function eventFromP2P(m) {
+  const q = m.earthquake || {}, h = q.hypocenter || {};
+  const time = parseJST(q.time);
+  if (!time) return null;
+  const hasHypo = h.latitude > -200 && h.longitude > -200 && h.latitude != null;
+  const prefs = new Map();
+  for (const p of m.points || []) { const c = prefCode(p.pref), s = shindoP2P(p.scale); if (c && s) prefs.set(c, Math.max(prefs.get(c) || 0, s)); }
+  const ev = {
+    id: 'p2p:' + (m.id || m._id || time + ':' + (h.name || '')), src: 'p2p', time,
+    name: h.name || '震源を調査中',
+    lat: hasHypo ? +h.latitude : null, lon: hasHypo ? +h.longitude : null,
+    depth: h.depth >= 0 ? +h.depth : null, mag: h.magnitude > 0 ? +h.magnitude : null,
+    maxi: shindoP2P(q.maxScale), prefs, foreign: m.issue?.type === 'Foreign',
+    tsunami: q.domesticTsunami, points: m.points || [], hasHypo,
+    reportTitle: P2P_TYPE[m.issue?.type] || '地震情報',
+  };
+  ev.inRegion = hasHypo && inRegion(ev.lat, ev.lon);
+  return ev;
+}
+function ingestP2P(m) {
+  const ev = eventFromP2P(m);
+  if (!ev) return null;
+  for (const e of Store.events.values()) {
+    if (!sameQuake(e, ev) || (e.hasHypo && ev.hasHypo && e.name !== ev.name && kmBetween(e.lat, e.lon, ev.lat, ev.lon) > 30)) continue;
+    const before = e.maxi, hadHypo = e.hasHypo;
+    if (e.src === 'p2p') {
+      if (ev.hasHypo) Object.assign(e, { lat: ev.lat, lon: ev.lon, depth: ev.depth, hasHypo: true, inRegion: ev.inRegion, name: ev.name });
+      if (ev.mag != null) e.mag = ev.mag;
+      e.reportTitle = ev.reportTitle;
+    }
+    e.maxi = Math.max(e.maxi || 0, ev.maxi);
+    for (const [c, s] of ev.prefs) e.prefs.set(c, Math.max(e.prefs.get(c) || 0, s));
+    if (ev.points.length) e.points = ev.points;
+    if (ev.tsunami) e.tsunami = ev.tsunami;
+    return { ev: e, isNew: false, grew: e.maxi > before, gainedHypo: !hadHypo && e.hasHypo };
+  }
+  Store.events.set(ev.id, ev);
+  return { ev, isNew: true, grew: true };
+}
+
+// ---- USGS（過去の震源） ----
+function parseUsgsCsv(text) {
+  const out = [];
+  const lines = text.split('\n');
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    // time,latitude,longitude,depth,mag,magType,nst,gap,dmin,rms,net,id,updated,"place",type,...
+    const f = [];
+    let cur = '', q = false;
+    for (let k = 0; k < line.length; k++) {
+      const ch = line[k];
+      if (ch === '"') q = !q;
+      else if (ch === ',' && !q) { f.push(cur); cur = ''; if (f.length > 14) break; }
+      else cur += ch;
+    }
+    f.push(cur);
+    if (f[14] && f[14] !== 'earthquake') continue;
+    const lat = +f[1], lon = +f[2], depth = +f[3], mag = +f[4], time = Date.parse(f[0]);
+    if (!Number.isFinite(lat) || !Number.isFinite(time)) continue;
+    out.push({ id: f[11], time, lat, lon, depth: Number.isFinite(depth) ? Math.max(0, depth) : 10, mag: Number.isFinite(mag) ? mag : null, place: f[13] || '' });
+  }
+  return out;
+}
+async function fetchUsgs(start, end, minMag) {
+  const qs = new URLSearchParams({
+    format: 'csv', starttime: new Date(start).toISOString().slice(0, 19), endtime: new Date(end).toISOString().slice(0, 19),
+    minlatitude: REGION.latMin, maxlatitude: REGION.latMax, minlongitude: REGION.lonMin, maxlongitude: REGION.lonMax,
+    minmagnitude: minMag, orderby: 'time-asc',
+  });
+  const r = await fetch(`${USGS_Q}?${qs}`);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return parseUsgsCsv(await r.text());
+}
+async function loadUsgs(kind, onChunk) {
+  if (Store.usgsLoaded[kind]) return;
+  Store.usgsLoaded[kind] = 'loading';
+  const now = Date.now();
+  const chunks = [];
+  if (kind === 'base') for (let i = 0; i < 5; i++) chunks.push([now - (i + 1) * YEAR, now - i * YEAR, 4]);
+  else for (let i = 0; i < 3; i++) chunks.push([now - (5 + (i + 1) * 5) * YEAR, now - (5 + i * 5) * YEAR, 5]);
+  let failed = 0;
+  await Promise.all(chunks.map(async ([a, b, m]) => {
+    try {
+      const rows = await fetchUsgs(a, b, m);
+      for (const e of rows) if (!Store.usgsKeys.has(e.id)) { Store.usgsKeys.add(e.id); Store.usgs.push(e); }
+      onChunk?.();
+    } catch (e) { failed++; }
+  }));
+  Store.usgsLoaded[kind] = failed === chunks.length ? false : true;
+  if (failed) toast(`過去の震源データの一部を取得できませんでした（${failed}/${chunks.length}）`, 'warn');
+}
+
+// ---- 県境（topojson） ----
+async function loadPrefectures() {
+  const r = await fetch(PREF_TOPO);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const topo = await r.json();
+  const { scale, translate } = topo.transform;
+  const arcs = topo.arcs.map((a) => {
+    let x = 0, y = 0;
+    const o = new Float64Array(a.length * 2);
+    for (let i = 0; i < a.length; i++) { x += a[i][0]; y += a[i][1]; o[i * 2] = x * scale[0] + translate[0]; o[i * 2 + 1] = y * scale[1] + translate[1]; }
+    return o;
+  });
+  const use = new Uint8Array(arcs.length);
+  const obj = topo.objects[Object.keys(topo.objects)[0]];
+  const W = HM.W, H = HM.H, ids = new Uint8Array(W * H);
+  for (const g of obj.geometries) {
+    const code = +g.properties?.id || prefCode(g.properties?.nam_ja);
+    const polys = g.type === 'Polygon' ? [g.arcs] : g.type === 'MultiPolygon' ? g.arcs : [];
+    const rings = [];
+    for (const poly of polys) for (const ring of poly) {
+      const pts = [];
+      for (const ai of ring) {
+        const rev = ai < 0, id = rev ? ~ai : ai, a = arcs[id], n = a.length / 2;
+        use[id]++;
+        for (let k = 0; k < n; k++) {
+          if (k === 0 && pts.length) continue;
+          const kk = rev ? n - 1 - k : k;
+          const [px, py] = mercPx(a[kk * 2 + 1], a[kk * 2]);
+          pts.push(px, py);
+        }
+      }
+      rings.push(pts);
+    }
+    scanFill(rings, W, H, ids, code);
+  }
+  HM.prefIds = ids;
+  const tex = new THREE.DataTexture(ids, W, H, THREE.RedFormat, THREE.UnsignedByteType);
+  tex.minFilter = tex.magFilter = THREE.NearestFilter;
+  tex.generateMipmaps = false;
+  tex.unpackAlignment = 1;
+  tex.needsUpdate = true;
+  terrainU.uPrefId.value = tex;
+  // 県境：2つの県が共有する線
+  const segs = [], c = [0.78, 0.86, 1.0, 0.30];
+  arcs.forEach((a, i) => {
+    if (use[i] < 2) return;
+    for (let k = 0; k < a.length / 2 - 1; k++) segs.push([a[k * 2], a[k * 2 + 1], -1, ...c], [a[k * 2 + 2], a[k * 2 + 3], -1, ...c]);
+  });
+  borderLines.geometry.dispose();
+  borderLines.geometry = lineGeometry(segs);
+}
+// 多角形を塗る（アンチエイリアスなし・偶奇規則）
+function scanFill(rings, W, H, out, val) {
+  const E = [];
+  let minY = Infinity, maxY = -Infinity;
+  for (const r of rings) {
+    const n = r.length / 2;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      let x1 = r[i * 2], y1 = r[i * 2 + 1], x2 = r[j * 2], y2 = r[j * 2 + 1];
+      if (y1 === y2) continue;
+      if (y1 > y2) { [x1, x2] = [x2, x1]; [y1, y2] = [y2, y1]; }
+      E.push([x1, y1, x2, y2]);
+      if (y1 < minY) minY = y1;
+      if (y2 > maxY) maxY = y2;
+    }
+  }
+  E.sort((a, b) => a[1] - b[1]);
+  let active = [], ei = 0;
+  const xs = [];
+  for (let y = Math.max(0, Math.floor(minY)); y <= Math.min(H - 1, Math.ceil(maxY)); y++) {
+    const yc = y + 0.5;
+    while (ei < E.length && E[ei][1] <= yc) active.push(E[ei++]);
+    active = active.filter((e) => e[3] > yc);
+    xs.length = 0;
+    for (const e of active) if (e[1] <= yc) xs.push(e[0] + (yc - e[1]) * (e[2] - e[0]) / (e[3] - e[1]));
+    xs.sort((a, b) => a - b);
+    for (let k = 0; k + 1 < xs.length; k += 2) {
+      const xa = Math.max(0, Math.ceil(xs[k] - 0.5)), xb = Math.min(W - 1, Math.floor(xs[k + 1] - 0.5));
+      for (let x = xa; x <= xb; x++) out[y * W + x] = val;
+    }
+  }
+}
+function setPrefTint(prefs) {
+  prefColData.fill(0);
+  if (prefs) for (const [code, s] of prefs) {
+    if (!s || code < 1 || code > 63) continue;
+    const v = parseInt(SHINDO[s].color.slice(1), 16);
+    prefColData.set([(v >> 16) & 255, (v >> 8) & 255, v & 255, 255], code * 4);
+  }
+  prefColTex.needsUpdate = true;
+}
+
+// ====== レイヤーの組み立て ======
+function rebuildJma() {
+  Store.list = [...Store.events.values()].sort((a, b) => b.time - a.time);
+  // 新しい地震が上に重なるよう、古い順に並べて描く
+  const items = Store.list.filter((e) => e.hasHypo && e.inRegion).reverse();
+  setPointData(jmaLayer, items, (e, c) => c.copy(SHINDO_LIN[e.maxi] || SHINDO_LIN[0]), jmaSize);
+  // 震源から地表への縦線
+  const segs = [];
+  for (const e of items) {
+    const c = SHINDO_LIN[e.maxi] || SHINDO_LIN[0], t = (e.time - T_REF) / 1000;
+    segs.push([e.lon, e.lat, -1, c.r, c.g, c.b, 0.34, t], [e.lon, e.lat, e.depth ?? 10, c.r, c.g, c.b, 0.12, t]);
+  }
+  dropLines.geometry.dispose();
+  dropLines.geometry = lineGeometry(segs);
+  syncSelectionIndex();
+  const latest = Store.list.find((e) => !e.foreign);
+  setMarker(latestMarker, latest && latest !== State.selected ? latest : null);
+  renderLatestChip(latest);
+  renderList();
+  Timeline.draw();
+}
+function rebuildUsgs() {
+  Store.usgs.sort((a, b) => a.time - b.time);
+  setPointData(usgsLayer, Store.usgs, (e, c) => depthColor(e.depth, c), usgsSize);
+  Timeline.draw();
+}
+function syncSelectionIndex() {
+  const i = State.selected ? jmaLayer.items.indexOf(State.selected) : -1;
+  jmaLayer.u.uSel.value = i;
+}
+function applyVisibility() {
+  for (const o of jmaLayer.objs) o.visible = S.showJma;
+  dropLines.visible = S.showJma;
+  for (const o of usgsLayer.objs) o.visible = S.showUsgs;
+  stationMesh.visible = S.showStations && StationState.list.length > 0;
+  borderLines.visible = S.showBorders;
+  trenchLines.visible = S.showPlates;
+  walls.visible = frameLines.visible = S.showWalls;
+  terrainU.uGrid.value = S.showWalls ? 1 : 0.4;
+  updateLabelVisibility();
+  controls.autoRotate = S.autoRotate;
+  $('btn-rotate').classList.toggle('on', S.autoRotate);
+}
+function applyExaggeration() {
+  U.uDepthExag.value = S.depthExag;
+  U.uLandExag.value = S.landExag;
+  const de = +S.depthExag.toFixed(2);
+  $('v-depth').textContent = '×' + (Number.isInteger(de) ? de.toFixed(1) : String(de));
+  $('v-land').textContent = '×' + S.landExag;
+  refreshLabels();
+  depthCorner = -1;
+  if (State.selected) setMarker(focusMarker, State.selected);
+  setMarker(latestMarker, latestMarker.userData.ev);
+  if (Me.obj) placeLabel(Me.obj);
+  StationState.local = null;
+}
+
+// ====== カメラ ======
+const Views = {
+  oblique: () => (innerWidth < innerHeight
+    ? { target: toLocal(35.0, 137.0, -140), dist: 4000, polar: 36, az: 6 }
+    : { target: toLocal(35.4, 137.6, -140), dist: 4400, polar: 54, az: 10 }),
+  top: () => ({ target: toLocal(34.3, 135.8, 0), dist: 5600, polar: 0.1, az: 0 }),
+  south: () => ({ target: toLocal(35.0, 136.5, -MAX_DEPTH * S.depthExag * 0.4), dist: 4200 + 1250 * S.depthExag, polar: 84, az: 0 }),
+  east: () => ({ target: toLocal(34.5, 137.5, -MAX_DEPTH * S.depthExag * 0.4), dist: 4200 + 1250 * S.depthExag, polar: 84, az: 90 }),
+};
+let fly = null;
+// 縦長の画面では横方向が狭く写るので、少し引いて見る
+const distScale = () => { const a = innerWidth / innerHeight; return a < 1 ? Math.pow(1 / a, 0.75) : 1; };
+function flyTo({ target, dist, polar, az, duration = 1.6 }) {
+  if (dist != null) dist *= distScale();
+  const off = new THREE.Vector3().subVectors(camera.position, controls.target);
+  const sph = new THREE.Spherical().setFromVector3(off);
+  const end = new THREE.Spherical(dist ?? sph.radius, polar != null ? polar * DEG : sph.phi, az != null ? az * DEG : sph.theta);
+  // 回転は近いほうへ
+  let dTheta = end.theta - sph.theta;
+  dTheta = ((dTheta + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+  fly = { t0: performance.now(), dur: duration * 1000, fromT: controls.target.clone(), toT: target.clone(), from: sph.clone(), dTheta, to: end };
+}
+function updateFly(now) {
+  if (!fly) return;
+  const k = clamp((now - fly.t0) / fly.dur, 0, 1), e = easeInOut(k);
+  controls.target.lerpVectors(fly.fromT, fly.toT, e);
+  // 遠くへ移るときは途中で少し引く
+  const hop = Math.sin(Math.PI * e) * Math.min(fly.fromT.distanceTo(fly.toT) * 0.35, 1800);
+  const s = new THREE.Spherical(lerp(fly.from.radius, fly.to.radius, e) + hop, lerp(fly.from.phi, fly.to.phi, e), fly.from.theta + fly.dTheta * e);
+  camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s));
+  if (k >= 1) fly = null;
+}
+controls.addEventListener('start', () => { fly = null; State.lastInteract = performance.now(); });
+function setView(name, duration = 1.6) {
+  flyTo({ ...Views[name](), duration });
+  document.querySelectorAll('#viewbar [data-view]').forEach((b) => b.classList.toggle('on', b.dataset.view === name));
+}
+function flyToEvent(ev) {
+  if (!ev?.hasHypo || !ev.inRegion) return;
+  const m = ev.mag ?? 3;
+  const dist = clamp(420 + 260 * (m - 3), 420, 2200) + (ev.depth || 0) * S.depthExag * 0.8;
+  const off = new THREE.Vector3().subVectors(camera.position, controls.target);
+  const sph = new THREE.Spherical().setFromVector3(off);
+  const polar = clamp(sph.phi / DEG, 38, 68);
+  flyTo({ target: toLocal(ev.lat, ev.lon, -(ev.depth || 0) * S.depthExag * 0.45), dist, polar, duration: 1.7 });
+  document.querySelectorAll('#viewbar [data-view]').forEach((b) => b.classList.remove('on'));
+}
+
+// ====== 選択・揺れの再生 ======
+async function selectEvent(ev, { fly: doFly = true, replay = true } = {}) {
+  State.selected = ev;
+  syncSelectionIndex();
+  setMarker(focusMarker, ev);
+  const latest = Store.list.find((e) => !e.foreign);
+  setMarker(latestMarker, latest && latest !== ev ? latest : null);
+  renderList();
+  renderDetail(ev);
+  setPrefTint(ev?.prefs);
+  prefFadeTarget = ev && S.showPrefTint ? 1 : 0;
+  if (!ev) { stopReplay(); setStations(null, []); return; }
+  if (IS_MOBILE) setMobileTab('map', true);
+  if (doFly) flyToEvent(ev);
+  setStations(ev, []);
+  let st = [];
+  if (ev.detailFile) {
+    try { st = (await loadStations(ev)) || []; } catch (e) { toast('観測点のデータを取得できませんでした', 'warn'); }
+    if (State.selected !== ev) return;
+    setPrefTint(ev.prefs);
+    renderDetail(ev);
+  }
+  setStations(ev, st);
+  if (replay && ev.hasHypo && ev.inRegion) setTimeout(() => { if (State.selected === ev) startReplay(ev); }, doFly ? 900 : 0);
+  else stationU.uReplayT.value = 1e9;
+}
+function startReplay(ev) {
+  const maxDelay = StationState.list.reduce((m, s) => Math.max(m, s.delay || 0), 0);
+  const reach = maxDelay > 0 ? maxDelay * VS : clamp(80 + (ev.mag ?? 3) * 60, 120, 600);
+  const total = reach / VS;
+  const speed = clamp(total / 7, 3, 40);
+  const now = performance.now();
+  State.replay = { ev, start: now, speed, total: total + 1.5 };
+  addWave({ key: 'replay', lat: ev.lat, lon: ev.lon, depth: ev.depth || 0, start: now, speed, maxR: reach * 1.05 + 20 });
+  $('replay-hud').classList.remove('hidden');
+}
+function stopReplay() {
+  if (!State.replay) return;
+  State.replay = null;
+  const w = WAVES.find((x) => x.key === 'replay');
+  if (w) w.dead = true;
+  stationU.uReplayT.value = 1e9;
+  $('replay-hud').classList.add('hidden');
+}
+function updateReplay(now) {
+  const r = State.replay;
+  if (!r) return;
+  const t = (now - r.start) / 1000 * r.speed;
+  stationU.uReplayT.value = t;
+  $('rh-time').textContent = `+${t.toFixed(1)}秒 (×${r.speed.toFixed(0)})`;
+  if (t > r.total) { State.replay = null; $('replay-hud').classList.add('hidden'); stationU.uReplayT.value = 1e9; }
+}
+
+// ====== 一覧・詳細 ======
+// 自分の地点の都道府県コード（現在地のときは県の塗り分けデータから調べる）
+function myPrefCode() {
+  if (S.me && S.me !== 'geo') return +S.me;
+  if (S.me === 'geo' && S.meLat != null && HM.prefIds) {
+    const [x, y] = mercPx(S.meLat, S.meLon);
+    if (x >= 0 && y >= 0 && x < HM.W && y < HM.H) return HM.prefIds[Math.floor(y) * HM.W + Math.floor(x)] || 0;
+  }
+  return 0;
+}
+function renderList() {
+  const el = $('quake-list');
+  const mp = myPrefCode();
+  const rows = Store.list.filter((e) => (e.maxi || 0) >= S.listMin || (S.listMin <= 1 && !e.maxi));
+  $('list-count').textContent = `${rows.length}件`;
+  document.querySelectorAll('#list-filter .chip').forEach((b) => b.classList.toggle('on', +b.dataset.min === S.listMin));
+  if (!rows.length) { el.innerHTML = `<div class="q-empty">${Store.list.length ? '条件に合う地震はありません' : Store.loadFailed ? '地震情報を取得できませんでした。<br>しばらくすると自動で再取得します。' : '地震情報を取得しています…'}</div>`; return; }
+  el.innerHTML = rows.slice(0, 300).map((e) => {
+    const meta = e.hasHypo ? `${fmtShort(e.time)} · ${fmtMag(e.mag)} · ${fmtDepth(e.depth)}` : `${fmtShort(e.time)} · ${esc(e.reportTitle || '')}`;
+    const mine = mp ? e.prefs?.get(mp) : 0;
+    const mineTag = mine ? `<div class="q-mine">自分の地域（${esc(PREFS[mp - 1].name)}）：${SHINDO[mine].label}</div>` : '';
+    return `<button class="q-item${e === State.selected ? ' sel' : ''}${e.isNew ? ' fresh' : ''}${mine ? ' mine' : ''}" data-id="${esc(e.id)}">
+      ${badgeHTML(e.maxi)}
+      <div style="min-width:0"><div class="q-name">${esc(eventTitle(e))}${e.foreign || (e.hasHypo && !e.inRegion) ? ' <small style="color:var(--dim);font-weight:400">（範囲外）</small>' : ''}</div><div class="q-meta num">${meta}</div>${mineTag}</div>
+      <div class="q-ago">${fmtAgo(e.time)}</div></button>`;
+  }).join('');
+}
+function renderLatestChip(ev) {
+  const el = $('latest-chip');
+  if (!ev) { el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  el.innerHTML = `${badgeHTML(ev.maxi, '')}<div style="min-width:0"><div class="lc-tag">最新の地震</div><div class="lc-text">${esc(ev.name)} <span class="lc-meta num">${fmtShort(ev.time)} · ${fmtMag(ev.mag)}</span></div></div>`;
+  el.querySelector('.badge').style.cssText += ';width:32px;height:32px;font-size:14px;border-radius:8px';
+  el.onclick = () => selectEvent(ev);
+}
+function renderDetail(ev) {
+  const panel = $('detail-panel');
+  if (!ev) { panel.classList.add('hidden'); return; }
+  panel.classList.remove('hidden');
+  const prefs = [...(ev.prefs || new Map())].sort((a, b) => b[1] - a[1]);
+  const st = ev.stations || [];
+  const tsu = ev.comment || (ev.tsunami ? TSUNAMI_TXT[ev.tsunami] : '');
+  const warn = /警報|注意報/.test(tsu || '') && !/心配はありません/.test(tsu || '');
+  const coord = ev.hasHypo ? `${ev.lat.toFixed(1)}°N ${ev.lon.toFixed(1)}°E` : '調査中';
+  $('detail-body').innerHTML = `
+    <div class="d-head">${badgeHTML(ev.maxi, 'big')}<div><div class="d-kind">${ev.maxi ? '最大' + SHINDO[ev.maxi].label : esc(ev.reportTitle || '地震情報')}</div><div class="d-name">${esc(eventTitle(ev))}</div><div class="d-time num">${fmtLong(ev.time)}</div></div>
+      <button class="icon-btn" id="d-close" aria-label="閉じる"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="d-grid">
+      <div class="d-cell"><label><span class="lf">マグニチュード</span><span class="ls">規模</span></label><b class="num">${ev.mag != null ? 'M' + ev.mag.toFixed(1) : '不明'}</b></div>
+      <div class="d-cell"><label>深さ</label><b class="num">${ev.depth == null ? '不明' : ev.depth === 0 ? 'ごく浅い' : Math.round(ev.depth) + '<small>km</small>'}</b></div>
+      <div class="d-cell"><label>震源</label><b class="num" style="font-size:13px">${coord}</b></div>
+      <div class="d-cell"><label>震度観測点</label><b class="num">${ev.detailFile ? (ev.stations ? st.length + '<small>地点</small>' : '…') : '－'}</b></div>
+    </div>
+    ${tsu ? `<div class="d-note${warn ? ' warn' : ''}">${esc(tsu)}</div>` : ''}
+    ${ev.foreign || (ev.hasHypo && !ev.inRegion) ? '<div class="d-note">震源が3D表示の範囲外のため、地図上には表示していません。</div>' : ''}
+    ${prefs.length ? `<div class="d-sec"><h4>都道府県ごとの最大震度</h4><div class="pref-chips">${prefs.slice(0, 16).map(([c, s]) => `<span class="pref-chip">${miniBadge(s)}${esc(PREFS[c - 1]?.name || c)}</span>`).join('')}</div></div>` : ''}
+    ${st.length ? `<div class="d-sec"><h4>震度の大きかった地点</h4><div class="st-list">${st.slice(0, 8).map((s) => `<div class="st-row">${miniBadge(s.s)}<span>${esc(s.name)}<small>${esc(s.pref)}</small></span></div>`).join('')}</div></div>` : ''}
+    <div class="d-actions">
+      <button class="btn primary grow" id="d-replay" ${ev.hasHypo && ev.inRegion ? '' : 'disabled'}><svg class="ic" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;width:14px;height:14px"><path d="M8 5.5v13l10.5-6.5z"/></svg>揺れの広がりを再生</button>
+      <button class="btn" id="d-zoom" ${ev.hasHypo && ev.inRegion ? '' : 'disabled'}>震源へ</button>
+    </div>`;
+  $('d-close').onclick = () => selectEvent(null);
+  $('d-replay').onclick = () => { flyToEvent(ev); setTimeout(() => startReplay(ev), 700); };
+  $('d-zoom').onclick = () => flyToEvent(ev);
+}
+
+// ====== タイムライン ======
+const RANGES = [['1d', '24時間', 864e5, '1日'], ['7d', '7日', 7 * 864e5], ['30d', '30日', 30 * 864e5], ['1y', '1年', YEAR], ['5y', '5年', 5 * YEAR], ['20y', '20年', 20 * YEAR]];
+const Timeline = {
+  live: true, playing: false, T: Date.now(), dragging: false, lastDraw: 0,
+  range() { return RANGES.find((r) => r[0] === S.range) || RANGES[4]; },
+  bounds() { const now = Date.now(); return [now - this.range()[2], now]; },
+  init() {
+    const box = $('tl-ranges');
+    box.innerHTML = RANGES.map(([k, l, , s]) => `<button data-range="${k}" title="過去${l}を表示">${s ? `<span class="rl">${l}</span><span class="rs">${s}</span>` : l}</button>`).join('');
+    box.onclick = (e) => { const b = e.target.closest('[data-range]'); if (b) this.setRange(b.dataset.range); };
+    $('tl-play').onclick = () => this.toggle();
+    $('tl-live').onclick = () => this.goLive();
+    $('tl-speed').onclick = () => { S.speed = S.speed === 1 ? 2 : S.speed === 2 ? 4 : S.speed === 4 ? 0.5 : 1; saveSettings(); this.syncUI(); };
+    const cv = $('tl-canvas');
+    const scrub = (e) => {
+      const r = cv.getBoundingClientRect();
+      const [a, b] = this.bounds();
+      this.T = lerp(a, b, clamp((e.clientX - r.left) / r.width, 0, 1));
+      this.live = false; this.playing = false;
+      this.syncUI();
+    };
+    cv.addEventListener('pointerdown', (e) => { this.dragging = true; cv.setPointerCapture(e.pointerId); scrub(e); });
+    cv.addEventListener('pointermove', (e) => { if (this.dragging) scrub(e); });
+    cv.addEventListener('pointerup', () => { this.dragging = false; if (this.T > Date.now() - 1000) this.goLive(); });
+    this.syncUI();
+  },
+  setRange(k) {
+    S.range = k; saveSettings();
+    if (k === '20y') loadUsgs('ext', () => rebuildUsgs()).then(() => rebuildUsgs());
+    this.playing = false;
+    this.goLive();
+  },
+  toggle() {
+    if (this.playing) { this.playing = false; }
+    else {
+      const [a, b] = this.bounds();
+      if (this.live || this.T >= b - 1000) this.T = a;
+      this.live = false; this.playing = true;
+      if (State.replay) stopReplay();
+    }
+    this.syncUI();
+  },
+  goLive() { this.live = true; this.playing = false; this.T = Date.now(); this.syncUI(); },
+  syncUI() {
+    document.querySelectorAll('#tl-ranges [data-range]').forEach((b) => b.classList.toggle('on', b.dataset.range === S.range));
+    $('tl-play-ic').innerHTML = this.playing ? '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>' : '<path d="M8 5.5v13l10.5-6.5z"/>';
+    $('tl-live').classList.toggle('on', this.live);
+    $('tl-speed').textContent = '×' + S.speed;
+    this.draw();
+  },
+  update(dt) {
+    const [a, b] = this.bounds();
+    if (this.live) this.T = b;
+    if (this.playing) {
+      this.T += (b - a) / (32 / S.speed) * dt;
+      if (this.T >= b) { this.T = b; this.playing = false; this.live = true; this.syncUI(); }
+    }
+    this.T = clamp(this.T, a, b);
+    timeU.uT.value = (this.T - T_REF) / 1000;
+    timeU.uT0.value = (a - T_REF) / 1000;
+    timeU.uNow.value = (Date.now() - T_REF) / 1000;
+    timeU.uFlash.value = this.playing || !this.live ? (b - a) / 1000 * 0.012 : 1;
+    const now = performance.now();
+    if (now - this.lastDraw > (this.playing || this.dragging ? 50 : 1000)) this.draw();
+  },
+  draw() {
+    this.lastDraw = performance.now();
+    const cv = $('tl-canvas');
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) return;
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    const g = cv.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const [a, b] = this.bounds();
+    const axisH = 14, ch = h - axisH - 2;
+    const bins = Math.max(20, Math.floor(w / 4));
+    const cu = new Float32Array(bins), cj = new Float32Array(bins), mj = new Uint8Array(bins);
+    const binOf = (t) => Math.floor((t - a) / (b - a) * bins);
+    for (const e of Store.usgs) { const i = binOf(e.time); if (i >= 0 && i < bins) cu[i] += 1; }
+    for (const e of Store.list) { const i = binOf(e.time); if (i >= 0 && i < bins) { cj[i] += 1; mj[i] = Math.max(mj[i], e.maxi || 0); } }
+    const maxU = Math.max(1, ...cu), maxJ = Math.max(1, ...cj);
+    const bw = w / bins;
+    // 背景
+    g.fillStyle = 'rgba(150,185,255,0.04)';
+    g.fillRect(0, 0, w, ch);
+    // 過去の震源（USGS）
+    g.fillStyle = 'rgba(110,150,255,0.42)';
+    for (let i = 0; i < bins; i++) if (cu[i]) { const bh = Math.max(1.5, Math.sqrt(cu[i] / maxU) * (ch - 4)); g.fillRect(i * bw + 0.5, ch - bh, Math.max(1, bw - 1), bh); }
+    // 最近の地震（気象庁）
+    for (let i = 0; i < bins; i++) if (cj[i]) {
+      const bh = Math.max(2, Math.sqrt(cj[i] / maxJ) * (ch - 4) * 0.8);
+      g.fillStyle = SHINDO[mj[i]]?.color || '#888';
+      g.globalAlpha = 0.9;
+      g.fillRect(i * bw + 0.5, ch - bh, Math.max(1.5, bw - 1), bh);
+    }
+    g.globalAlpha = 1;
+    // 再生済みの範囲
+    const x = (this.T - a) / (b - a) * w;
+    if (!this.live) {
+      g.fillStyle = 'rgba(3,6,13,0.55)';
+      g.fillRect(x, 0, w - x, ch);
+    }
+    // 選択中の地震
+    if (State.selected && State.selected.time >= a) {
+      const sx = (State.selected.time - a) / (b - a) * w;
+      g.fillStyle = '#fff';
+      g.beginPath(); g.moveTo(sx, 0); g.lineTo(sx - 4, -0.5 + 6); g.lineTo(sx + 4, 5.5); g.fill();
+    }
+    // 目盛り
+    g.fillStyle = 'rgba(160,175,200,0.7)';
+    g.font = '10px ui-monospace, Menlo, monospace';
+    g.textBaseline = 'top';
+    const span = b - a;
+    const ticks = span <= 864e5 * 1.01 ? tickHours(a, b, 3) : span <= 31 * 864e5 ? tickDays(a, b, span <= 8 * 864e5 ? 1 : 5) : tickYears(a, b, span <= 1.1 * YEAR);
+    g.textAlign = 'center';
+    for (const [t, lab] of ticks) {
+      const tx = (t - a) / (b - a) * w;
+      if (tx < 14 || tx > w - 14) continue;
+      g.fillRect(tx, ch, 1, 3);
+      g.fillText(lab, tx, ch + 3);
+    }
+    // カーソル
+    g.fillStyle = this.live ? '#ff5d57' : '#5ec8ff';
+    g.fillRect(Math.min(x, w - 2), 0, 2, ch);
+    const info = $('tl-info');
+    const nU = Store.usgs.filter((e) => e.time >= a && e.time <= this.T).length;
+    const nJ = Store.list.filter((e) => e.time >= a && e.time <= this.T && e.hasHypo).length;
+    info.innerHTML = `<b>${this.live ? '現在' : fmtClock(this.T).slice(0, 16)}</b>　表示中：過去の震源 ${nU.toLocaleString()} ・ 最近の地震 ${nJ}`;
+  },
+};
+function tickHours(a, b, step) { const out = []; const s = Math.ceil((a + 9 * 3600e3) / (step * 3600e3)) * step * 3600e3 - 9 * 3600e3; for (let t = s; t <= b; t += step * 3600e3) { const j = jst(t); out.push([t, `${p2(j.h)}:00`]); } return out; }
+function tickDays(a, b, step) { const out = []; const day = 864e5; let t = Math.ceil((a + 9 * 3600e3) / day) * day - 9 * 3600e3; for (; t <= b; t += day) { const j = jst(t); if ((j.d - 1) % step === 0 || step === 1) out.push([t, `${j.mo}/${j.d}`]); } return out; }
+function tickYears(a, b, monthly) {
+  const out = []; const ja = jst(a);
+  if (monthly) { for (let y = ja.y, m = ja.mo + 1; ; m++) { if (m > 12) { m = 1; y++; } const t = Date.UTC(y, m - 1, 1) - 9 * 3600e3; if (t > b) break; if ((m - 1) % 2 === 0) out.push([t, m === 1 ? `${y}` : `${m}月`]); } }
+  else { const span = (b - a) / YEAR; const step = span > 10 ? 2 : 1; for (let y = ja.y + 1; ; y++) { const t = Date.UTC(y, 0, 1) - 9 * 3600e3; if (t > b) break; if (y % step === 0) out.push([t, `${y}`]); } }
+  return out;
+}
+
+// ====== 当たり判定・ツールチップ ======
+const _v = new THREE.Vector3();
+function pickAt(cx, cy) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  const mx = cx - rect.left, my = cy - rect.top, W = rect.width, H = rect.height;
+  const T = timeU.uT.value, T0 = timeU.uT0.value;
+  let best = null, bd = 13;
+  const test = (arr, i, rad, make) => {
+    _v.set(arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2]).project(camera);
+    if (_v.z > 1 || _v.z < -1) return;
+    const d = Math.hypot((_v.x + 1) / 2 * W - mx, (1 - _v.y) / 2 * H - my) - rad;
+    if (d < bd) { bd = d; best = make(); }
+  };
+  if (S.showStations && StationState.list.length && stationU.uReplayT.value > 0) {
+    const arr = stationLocal();
+    StationState.list.forEach((s, i) => { if (s.delay <= stationU.uReplayT.value) test(arr, i, 3, () => ({ kind: 'station', s })); });
+  }
+  if (S.showJma) {
+    const arr = layerLocal(jmaLayer);
+    jmaLayer.items.forEach((e, i) => { const t = (e.time - T_REF) / 1000; if (t >= T0 && t <= T) test(arr, i, 5, () => ({ kind: 'jma', e, i })); });
+  }
+  // 最近の地震がすぐ近くにあるときはそちらを優先する
+  if (S.showUsgs && (!best || bd > 2)) {
+    const arr = layerLocal(usgsLayer), items = usgsLayer.items;
+    for (let i = 0; i < items.length; i++) { const t = (items[i].time - T_REF) / 1000; if (t < T0 || t > T) continue; test(arr, i, 1, () => ({ kind: 'usgs', e: items[i], i })); }
+  }
+  return best;
+}
+function stationLocal() {
+  const key = S.depthExag + ':' + S.landExag + ':' + StationState.list.length + ':' + stationU.uHScale.value.toFixed(1);
+  if (StationState.local && StationState.localKey === key) return StationState.local;
+  const arr = new Float32Array(StationState.list.length * 3), v = new THREE.Vector3();
+  StationState.list.forEach((s, i) => { toLocal(s.lat, s.lon, surfAlt(s.lat, s.lon) + (0.5 + s.s * 0.85) * stationU.uHScale.value, v); arr.set([v.x, v.y, v.z], i * 3); });
+  StationState.local = arr; StationState.localKey = key;
+  return arr;
+}
+function showTooltip(hit, x, y) {
+  const tt = $('tooltip');
+  if (!hit) { tt.classList.add('hidden'); return; }
+  let html = '';
+  if (hit.kind === 'jma') {
+    const e = hit.e;
+    html = `<div class="tt-title">${miniBadge(e.maxi)}${esc(e.name)}</div><div class="tt-meta num">${fmtShort(e.time)} · ${fmtMag(e.mag)} · 深さ${fmtDepth(e.depth)}</div><div class="tt-meta" style="color:var(--dim)">クリックで揺れを再生</div>`;
+  } else if (hit.kind === 'usgs') {
+    const e = hit.e;
+    html = `<div class="tt-title">${fmtMag(e.mag)}　深さ${Math.round(e.depth)}km</div><div class="tt-meta num">${fmtDate(e.time)} ${fmtShort(e.time).split(' ')[1]}（日本時間）</div><div class="tt-meta" style="color:var(--dim)">${esc(e.place)}（USGS）</div>`;
+  } else if (hit.kind === 'station') {
+    const s = hit.s;
+    html = `<div class="tt-title">${miniBadge(s.s)}${esc(s.name)}</div><div class="tt-meta">${esc(s.pref)}　${SHINDO[s.s].label}</div>`;
+  }
+  tt.innerHTML = html;
+  tt.classList.remove('hidden');
+  const r = tt.getBoundingClientRect();
+  tt.style.left = Math.min(x, innerWidth - r.width - 20) + 'px';
+  tt.style.top = Math.min(y, innerHeight - r.height - 20) + 'px';
+}
+let pointer = null, pointerDown = null, hoverDirty = false;
+renderer.domElement.addEventListener('pointermove', (e) => { pointer = { x: e.clientX, y: e.clientY, type: e.pointerType }; hoverDirty = true; });
+controls.addEventListener('change', () => { hoverDirty = true; });
+renderer.domElement.addEventListener('pointerleave', () => { pointer = null; showTooltip(null); jmaLayer.u.uHover.value = -1; usgsLayer.u.uHover.value = -1; });
+renderer.domElement.addEventListener('pointerdown', (e) => { pointerDown = { x: e.clientX, y: e.clientY, t: performance.now() }; State.lastInteract = performance.now(); });
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (!pointerDown) return;
+  const moved = Math.hypot(e.clientX - pointerDown.x, e.clientY - pointerDown.y);
+  const quick = performance.now() - pointerDown.t < 450;
+  pointerDown = null;
+  if (moved > 5 || !quick) return;
+  const hit = pickAt(e.clientX, e.clientY);
+  if (hit?.kind === 'jma') selectEvent(hit.e);
+  else if (hit?.kind === 'usgs' && e.pointerType !== 'mouse') showTooltip(hit, e.clientX, e.clientY);
+});
+function updateHover() {
+  if (!pointer || pointer.type === 'touch' || pointerDown || !hoverDirty) return;
+  hoverDirty = false;
+  const hit = pickAt(pointer.x, pointer.y);
+  jmaLayer.u.uHover.value = hit?.kind === 'jma' ? hit.i : -1;
+  usgsLayer.u.uHover.value = hit?.kind === 'usgs' ? hit.i : -1;
+  renderer.domElement.style.cursor = hit?.kind === 'jma' ? 'pointer' : '';
+  showTooltip(hit, pointer.x, pointer.y);
+}
+
+// ====== 音・通知 ======
+const Sound = {
+  ctx: null,
+  unlock() {
+    try { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); } catch {}
+  },
+  tone(f, t, dur, vol, type = 'sine') {
+    const c = this.ctx; if (!c) return;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, c.currentTime + t);
+    g.gain.exponentialRampToValueAtTime(vol, c.currentTime + t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + t + dur);
+    o.connect(g).connect(c.destination);
+    o.start(c.currentTime + t); o.stop(c.currentTime + t + dur + 0.05);
+  },
+  chime() { this.unlock(); this.tone(1318.5, 0, 0.9, 0.16); this.tone(987.8, 0.22, 1.2, 0.14); this.tone(1975.5, 0, 0.5, 0.03); },
+  alarm() {
+    this.unlock();
+    for (let i = 0; i < 6; i++) { this.tone(i % 2 ? 740 : 988, i * 0.32, 0.28, 0.22, 'triangle'); this.tone(i % 2 ? 1480 : 1976, i * 0.32, 0.2, 0.04, 'sine'); }
+  },
+};
+addEventListener('pointerdown', () => Sound.unlock(), { once: true });
+addEventListener('keydown', () => Sound.unlock(), { once: true });
+function notify(title, body) {
+  if (!S.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
+  try { new Notification(title, { body, tag: 'quake3d', icon: undefined }); } catch {}
+}
+
+// ====== 新しい地震を知らせる ======
+// 震源がまだ決まっていない「震度速報」では、揺れた地域の名前を出す
+function eventTitle(ev) {
+  if (ev.hasHypo || !ev.points?.length) return ev.name;
+  const top = [...ev.points].sort((a, b) => b.scale - a.scale)[0];
+  return `${top.addr || top.pref}など（震源は調査中）`;
+}
+function announce(ev) {
+  // 古い情報（遅れて届いたもの・試験配信の再送）では鳴らさない
+  if (!SANDBOX && Date.now() - ev.time > 20 * 60e3) return;
+  ev.isNew = true;
+  const s = ev.maxi || 0;
+  const label = s ? SHINDO[s].label : '震度不明';
+  if (s >= S.notifyMin) {
+    if (S.sound) Sound.chime();
+    const title = eventTitle(ev);
+    notify(`【${label}】${title}`, ev.hasHypo ? `${fmtShort(ev.time)} ${fmtMag(ev.mag)} 深さ${fmtDepth(ev.depth)}` : `${fmtShort(ev.time)}ごろ 地震がありました`);
+    toast(`${label}　${title}（${fmtShort(ev.time)}）`, s >= 5 ? 'bad' : s >= 4 ? 'warn' : 'info');
+  }
+  focusIfIdle(ev);
+}
+// 操作していないときだけ、新しい地震の震源へ視点を移して揺れを再生する
+function focusIfIdle(ev) {
+  const idle = performance.now() - State.lastInteract > 25000;
+  if (S.autoFocus && idle && !Timeline.playing && !State.eew && ev.hasHypo && ev.inRegion && (ev.maxi || 0) >= Math.min(S.notifyMin, 3)) selectEvent(ev);
+}
+
+// ====== リアルタイム受信（P2P地震情報 WebSocket） ======
+// P2P地震情報の WebSocket は1つのIPから同時2接続まで。複数タブで開いても接続は1本にして、
+// 受信したタブ（リーダー）が他のタブへ中継する。
+const Conn = { ws: null, retry: 0, timer: null, leader: false, state: '', text: '' };
+const channel = 'BroadcastChannel' in window ? new BroadcastChannel('quake3d') : null;
+function setConn(state, text) {
+  Conn.state = state; Conn.text = text;
+  const el = $('conn');
+  el.className = 'conn ' + state;
+  const label = (SANDBOX ? '[試験配信] ' : '') + text;
+  el.querySelector('.txt').textContent = label;
+  el.title = label;
+  if (Conn.leader) channel?.postMessage({ type: 'conn', state, text });
+}
+function startRealtime() {
+  if (navigator.locks && channel) {
+    setConn('', '別のタブで受信中');
+    channel.onmessage = (e) => {
+      const d = e.data || {};
+      if (Conn.leader) { if (d.type === 'hello') channel.postMessage({ type: 'conn', state: Conn.state, text: Conn.text }); return; }
+      if (d.type === 'msg') onMessage(d.m);
+      else if (d.type === 'conn') setConn(d.state, d.text + '（別タブ）');
+    };
+    channel.postMessage({ type: 'hello' });
+    navigator.locks.request('quake3d-ws', () => { Conn.leader = true; connectWS(); return new Promise(() => {}); });
+  } else connectWS();
+}
+function connectWS() {
+  clearTimeout(Conn.timer);
+  try { Conn.ws = new WebSocket(P2P_WS); } catch { scheduleReconnect(); return; }
+  setConn('', '接続中…');
+  Conn.ws.onopen = () => { Conn.retry = 0; setConn('ok', 'リアルタイム受信中'); };
+  Conn.ws.onmessage = (e) => {
+    let m;
+    try { m = JSON.parse(e.data); } catch { return; }
+    channel?.postMessage({ type: 'msg', m });
+    try { onMessage(m); } catch (err) { console.warn(err); }
+  };
+  Conn.ws.onclose = () => { setConn('bad', '再接続を待っています'); scheduleReconnect(); };
+  Conn.ws.onerror = () => {};
+}
+function scheduleReconnect() {
+  clearTimeout(Conn.timer);
+  // 接続数の制限（HTTP 429）に当たっていることもあるので、間隔は長めに取る
+  const wait = Math.min(120000, 10000 * 2 ** Conn.retry++);
+  Conn.timer = setTimeout(connectWS, wait);
+}
+function onMessage(m) {
+  if (m.code === 551) {
+    const r = ingestP2P(m);
+    if (!r) return;
+    rebuildJma();
+    if (r.isNew || r.grew) announce(r.ev);
+    else if (r.gainedHypo && Date.now() - r.ev.time < 20 * 60e3) focusIfIdle(r.ev);
+    if (State.selected === r.ev) { renderDetail(r.ev); setPrefTint(r.ev.prefs); }
+    refreshJmaSoon();
+  } else if (m.code === 556) {
+    handleEEW(m);
+  } else if (m.code === 552) {
+    if (m.cancelled) toast('津波予報は解除されました', 'ok');
+    else {
+      const g = new Set((m.areas || []).map((a) => a.grade));
+      const kind = g.has('MajorWarning') ? '大津波警報' : g.has('Warning') ? '津波警報' : g.has('Watch') ? '津波注意報' : '津波予報';
+      toast(`🌊 ${kind}が発表されました。海岸から離れてください。`, 'bad', 15000);
+      notify(kind, '海岸や川沿いから離れてください。');
+    }
+  }
+}
+let jmaRefreshTimers = [];
+function refreshJmaSoon() {
+  jmaRefreshTimers.forEach(clearTimeout);
+  jmaRefreshTimers = [20e3, 60e3, 150e3].map((ms) => setTimeout(refreshJma, ms));
+}
+async function refreshJma() {
+  try {
+    const fresh = await fetchJmaList();
+    Store.loadFailed = false;
+    rebuildJma();
+    if (State.selected && State.selected.detailFile && !State.selected.stations) selectEvent(State.selected, { fly: false, replay: false });
+    return fresh;
+  } catch (e) { return []; }
+}
+// 取りこぼし対策の定期確認
+setInterval(async () => {
+  try {
+    const r = await fetch(`${P2P_API}?codes=551&limit=10`);
+    if (!r.ok) return;
+    const arr = await r.json();
+    let changed = false;
+    for (const m of arr.reverse()) {
+      const res = ingestP2P(m);
+      if (res?.isNew) { changed = true; if (Date.now() - res.ev.time < 15 * 60e3) announce(res.ev); }
+    }
+    if (changed) rebuildJma();
+  } catch {}
+}, 60e3);
+setInterval(refreshJma, 5 * 60e3);
+
+// ====== 緊急地震速報 ======
+const Me = { obj: null };
+function setMe(lat, lon, name) {
+  if (Me.obj) { labelGroup.remove(Me.obj); Me.obj = null; }
+  if (lat == null) return;
+  Me.obj = addLabel(esc(name || '自分の地点'), 'lbl-me', lat, lon, 'surface', [0, 0.5]);
+  placeLabel(Me.obj);
+}
+function handleEEW(m, demo = false) {
+  if (m.test && !demo) return;
+  const evId = m.issue?.eventId || 'x';
+  if (m.cancelled) {
+    if (State.eew && State.eew.id === evId) { toast('緊急地震速報は取り消されました', 'ok'); endEEW(); }
+    return;
+  }
+  const q = m.earthquake || {}, h = q.hypocenter || {};
+  const origin = parseJST(q.originTime) || Date.now();
+  const hasHypo = h.latitude > -200 && h.longitude > -200;
+  let maxTo = 0, maxFrom = 0;
+  for (const a of m.areas || []) { maxFrom = Math.max(maxFrom, shindoP2P(a.scaleFrom)); maxTo = Math.max(maxTo, a.scaleTo === 99 ? shindoP2P(a.scaleFrom) : shindoP2P(a.scaleTo)); }
+  const isNewEvent = !State.eew || State.eew.id !== evId;
+  State.eew = { id: evId, demo, origin, lat: hasHypo ? +h.latitude : null, lon: hasHypo ? +h.longitude : null, depth: h.depth >= 0 ? +h.depth : 10, mag: h.magnitude > 0 ? +h.magnitude : null, name: h.name || '震源を調査中', maxi: Math.max(maxTo, maxFrom), areas: m.areas || [], serial: m.issue?.serial, until: origin + 180e3 };
+  const E = State.eew;
+  const box = $('eew');
+  box.classList.remove('hidden');
+  box.classList.toggle('demo', demo);
+  $('eew-tag').textContent = demo ? '【デモ】緊急地震速報（訓練）' : '緊急地震速報（警報）';
+  $('eew-sub').textContent = E.serial ? `第${E.serial}報` : '';
+  $('eew-name').textContent = E.name;
+  $('eew-meta').textContent = `${fmtShort(origin)}ごろ発生 · ${E.mag ? 'M' + E.mag.toFixed(1) + '（推定）' : 'M調査中'} · 深さ${fmtDepth(E.depth)}`;
+  $('eew-max').innerHTML = badgeHTML(E.maxi, 'big') + (m.areas?.some((a) => a.scaleTo === 99) ? '<div style="font-size:10px;color:#ffc9c4;margin-top:3px">程度以上</div>' : '');
+  const areas = [...(m.areas || [])].sort((a, b) => b.scaleFrom - a.scaleFrom);
+  $('eew-areas').innerHTML = areas.slice(0, 18).map((a) => `<span>${esc(a.name)}</span>`).join('') + (areas.length > 18 ? `<span>ほか${areas.length - 18}地域</span>` : '');
+  if (isNewEvent) {
+    if (S.eewSound) Sound.alarm();
+    if (!demo) notify('緊急地震速報', `${E.name}で地震。強い揺れに警戒してください。`);
+    if (Timeline.playing) Timeline.goLive();
+    stopReplay();
+  }
+  if (E.lat != null) {
+    addWave({ key: 'eew', lat: E.lat, lon: E.lon, depth: E.depth, realtime: true, originMs: origin, maxR: 900 });
+    if (isNewEvent && inRegion(E.lat, E.lon)) {
+      const fake = { hasHypo: true, inRegion: true, lat: E.lat, lon: E.lon, depth: E.depth, mag: E.mag ?? 6, maxi: E.maxi, name: E.name, time: origin };
+      setMarker(focusMarker, fake);
+      flyTo({ target: toLocal(E.lat, E.lon, 0), dist: 2600, polar: 42, duration: 1.4 });
+    }
+  }
+  if (demo) {
+    const demoPrefs = new Map();
+    for (const a of m.areas || []) { const c = prefCode(a.pref); if (c) demoPrefs.set(c, Math.max(demoPrefs.get(c) || 0, shindoP2P(a.scaleFrom))); }
+    setPrefTint(demoPrefs); prefFadeTarget = 1;
+  }
+}
+function updateEEW() {
+  const E = State.eew;
+  if (!E) return;
+  const now = Date.now();
+  if (now > E.until) { endEEW(); return; }
+  const el = $('eew-count');
+  if (S.meLat != null && E.lat != null) {
+    const d = hypoDist(E.lat, E.lon, E.depth, S.meLat, S.meLon);
+    const t = (now - E.origin) / 1000;
+    const tp = d / VP - t, ts = d / VS - t;
+    const name = S.me === 'geo' ? '現在地' : (PREFS.find((p) => String(p.code) === S.me)?.cap || '自分の地点');
+    el.classList.remove('hidden');
+    el.innerHTML = `<span>${esc(name)}まで約${Math.round(d)}km</span><span>P波 ${tp > 0 ? `あと<b>${tp.toFixed(0)}</b>秒` : '<b>到達</b>'}</span><span>S波（主要動） ${ts > 0 ? `あと<b>${ts.toFixed(0)}</b>秒` : '<b>到達</b>'}</span>`;
+  } else el.classList.add('hidden');
+}
+function endEEW() {
+  State.eew = null;
+  $('eew').classList.add('hidden');
+  const w = WAVES.find((x) => x.key === 'eew');
+  if (w) w.dead = true;
+  setMarker(focusMarker, State.selected);
+  setPrefTint(State.selected?.prefs);
+  prefFadeTarget = State.selected && S.showPrefTint ? 1 : 0;
+}
+// デモ用：架空の地震から予想震度をおおまかに計算（司・翠川式の簡略版）
+function demoIntensity(M, depth, dist) {
+  const x = Math.max(dist, 3);
+  const logPGV = 0.58 * M + 0.0038 * depth - 1.29 - Math.log10(x + 0.0028 * 10 ** (0.5 * M)) - 0.002 * x;
+  const pgv = 10 ** logPGV * 1.6;
+  return 2.68 + 1.72 * Math.log10(Math.max(pgv, 1e-3));
+}
+const toShindoIdx = (I) => (I < 0.5 ? 0 : I < 1.5 ? 1 : I < 2.5 ? 2 : I < 3.5 ? 3 : I < 4.5 ? 4 : I < 5.0 ? 5 : I < 5.5 ? 6 : I < 6.0 ? 7 : I < 6.5 ? 8 : 9);
+const IDX_TO_P2P = [0, 10, 20, 30, 40, 45, 50, 55, 60, 70];
+function runDemo() {
+  const SCEN = [
+    { name: '宮城県沖', lat: 38.3, lon: 142.0, depth: 50, mag: 7.1 },
+    { name: '千葉県東方沖', lat: 35.7, lon: 140.8, depth: 30, mag: 6.6 },
+    { name: '日向灘', lat: 32.0, lon: 131.9, depth: 30, mag: 6.9 },
+    { name: '石川県能登地方', lat: 37.4, lon: 137.2, depth: 10, mag: 6.8 },
+    { name: '十勝沖', lat: 42.2, lon: 144.0, depth: 40, mag: 7.3 },
+  ];
+  const sc = SCEN[(runDemo.n = ((runDemo.n ?? Math.floor(Math.random() * SCEN.length)) + 1) % SCEN.length)];
+  const origin = Date.now() - 3000;
+  // 各県の陸地をおおまかに走査して、県ごとの最大の予想震度を求める
+  const best = new Map();
+  const H0 = ecef(sc.lat, sc.lon, R_EARTH - sc.depth, new THREE.Vector3()), P = new THREE.Vector3();
+  const consider = (code, lat, lon) => {
+    const I = demoIntensity(sc.mag, sc.depth, Math.max(ecef(lat, lon, R_EARTH, P).distanceTo(H0) - 10, 5));
+    if (I > (best.get(code) ?? -9)) best.set(code, I);
+  };
+  if (HM.prefIds) {
+    const n = 2 ** TILE.z, step = IS_MOBILE ? 3 : 5;
+    for (let y = 0; y < HM.H; y += step) {
+      const lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * (TILE.y0 + (y + 0.5) / 256) / n))) / DEG;
+      for (let x = 0; x < HM.W; x += step) {
+        const code = HM.prefIds[y * HM.W + x];
+        if (code) consider(code, lat, (TILE.x0 + (x + 0.5) / 256) / n * 360 - 180);
+      }
+    }
+  } else for (const p of PREFS) consider(p.code, p.lat, p.lon);
+  const areas = [...best].map(([code, I]) => ({ pref: PREFS[code - 1].name, name: PREFS[code - 1].name, idx: toShindoIdx(I) }))
+    .filter((a) => a.idx >= 4).sort((a, b) => b.idx - a.idx);
+  const t = jst(origin);
+  const m = {
+    code: 556, test: true, cancelled: false,
+    issue: { eventId: 'demo-' + origin, serial: '1' },
+    earthquake: { originTime: `${t.y}/${p2(t.mo)}/${p2(t.d)} ${p2(t.h)}:${p2(t.mi)}:${p2(t.s)}`, hypocenter: { name: sc.name, latitude: sc.lat, longitude: sc.lon, depth: sc.depth, magnitude: sc.mag } },
+    areas: areas.map((a) => ({ pref: a.pref, name: a.name, scaleFrom: IDX_TO_P2P[a.idx], scaleTo: IDX_TO_P2P[a.idx] })),
+  };
+  closeModals();
+  handleEEW(m, true);
+  State.eew.until = Date.now() + 75e3;
+}
+
+// ====== トースト ======
+function toast(msg, kind = 'info', ms = 5200) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.textContent = msg;
+  $('toasts').appendChild(el);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 350); }, ms);
+}
+
+// ====== UI の配線 ======
+function bindSettings() {
+  document.querySelectorAll('[data-set]').forEach((el) => {
+    const k = el.dataset.set;
+    if (el.type === 'checkbox') el.checked = !!S[k];
+    else el.value = S[k];
+    el.addEventListener(el.type === 'range' ? 'input' : 'change', async () => {
+      if (el.type === 'checkbox') S[k] = el.checked;
+      else S[k] = el.type === 'range' || /^\d+(\.\d+)?$/.test(el.value) ? +el.value : el.value;
+      if (k === 'notify' && S.notify && 'Notification' in window && Notification.permission !== 'granted') {
+        const p = await Notification.requestPermission().catch(() => 'denied');
+        if (p !== 'granted') { S.notify = false; el.checked = false; toast('通知が許可されませんでした。ブラウザの設定を確認してください。', 'warn'); }
+      }
+      if (k === 'depthExag' || k === 'landExag') applyExaggeration();
+      if (k === 'showPrefTint') prefFadeTarget = State.selected && S.showPrefTint ? 1 : 0;
+      applyVisibility();
+      saveSettings();
+    });
+  });
+  $('list-filter').onclick = (e) => { const b = e.target.closest('[data-min]'); if (!b) return; S.listMin = +b.dataset.min; saveSettings(); renderList(); };
+  $('quake-list').onclick = (e) => { const b = e.target.closest('[data-id]'); if (!b) return; const ev = Store.events.get(b.dataset.id); if (ev) selectEvent(ev); };
+  $('viewbar').onclick = (e) => { const b = e.target.closest('[data-view]'); if (b) setView(b.dataset.view); };
+  $('btn-rotate').onclick = () => { S.autoRotate = !S.autoRotate; saveSettings(); applyVisibility(); };
+  $('btn-layers').onclick = () => { $('layers-panel').classList.toggle('hidden'); $('btn-layers').classList.toggle('on', !$('layers-panel').classList.contains('hidden')); };
+  $('btn-settings').onclick = () => openModal('settings-modal');
+  $('btn-help').onclick = () => openModal('help-modal');
+  document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m || e.target.closest('[data-close]')) closeModals(); }));
+  $('test-chime').onclick = () => Sound.chime();
+  $('test-alarm').onclick = () => Sound.alarm();
+  $('btn-demo').onclick = () => runDemo();
+  $('eew-close').onclick = () => { if (State.eew?.demo) endEEW(); else $('eew').classList.add('hidden'); };
+  $('rh-skip').onclick = () => stopReplay();
+  const sel = $('set-me');
+  sel.innerHTML = '<option value="">設定しない</option><option value="geo">現在地</option>' + PREFS.map((p) => `<option value="${p.code}">${p.name}（${p.cap}）</option>`).join('');
+  sel.value = S.me;
+  sel.onchange = () => {
+    S.me = sel.value;
+    if (S.me === 'geo') { getGeo(); return; }
+    const p = PREFS.find((x) => String(x.code) === S.me);
+    S.meLat = p?.lat ?? null; S.meLon = p?.lon ?? null;
+    setMe(S.meLat, S.meLon, p?.cap);
+    saveSettings();
+    renderList();
+  };
+  $('btn-geo').onclick = () => { sel.value = 'geo'; S.me = 'geo'; getGeo(); };
+  document.querySelectorAll('#mobile-tabs [data-tab]').forEach((b) => b.onclick = () => setMobileTab(b.dataset.tab));
+  addEventListener('keydown', (e) => {
+    if (e.target.closest('input, select, textarea')) return;
+    if (e.key === 'Escape') { if (!document.querySelector('.modal:not(.hidden)')) { if (!$('layers-panel').classList.contains('hidden')) $('layers-panel').classList.add('hidden'); else selectEvent(null); } closeModals(); }
+    else if (e.key === ' ') { e.preventDefault(); Timeline.toggle(); }
+    else if (e.key === 'r' || e.key === 'R') setView('oblique');
+    else if (['1', '2', '3', '4'].includes(e.key)) setView(['oblique', 'top', 'south', 'east'][+e.key - 1]);
+  });
+}
+function getGeo() {
+  if (!navigator.geolocation) { toast('この端末では現在地を取得できません', 'warn'); return; }
+  navigator.geolocation.getCurrentPosition((p) => {
+    S.meLat = p.coords.latitude; S.meLon = p.coords.longitude; S.me = 'geo';
+    setMe(S.meLat, S.meLon, '現在地'); saveSettings();
+    renderList();
+    toast('現在地を設定しました', 'ok');
+  }, () => {
+    toast('現在地を取得できませんでした', 'warn');
+    if (S.meLat == null) { S.me = ''; $('set-me').value = ''; saveSettings(); }
+  }, { timeout: 10000, maximumAge: 600000 });
+}
+function openModal(id) { closeModals(); $(id).classList.remove('hidden'); }
+function closeModals() { document.querySelectorAll('.modal').forEach((m) => m.classList.add('hidden')); if (IS_MOBILE) setMobileTab(document.body.classList.contains('m-list') ? 'list' : 'map', true); }
+function setMobileTab(tab, silent) {
+  if (tab === 'settings' && !silent) { openModal('settings-modal'); return; }
+  document.body.classList.toggle('m-list', tab === 'list');
+  document.querySelectorAll('#mobile-tabs [data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === (tab === 'settings' ? 'map' : tab)));
+}
+
+// パネルに隠れていない部分の中央に3D表示の中心が来るよう、投影をずらす
+const viewOff = { x: 0, y: 0, tx: 0, ty: 0 };
+function measureViewOffset() {
+  const W = innerWidth, H = innerHeight;
+  let left = 0, right = 0, top = 0, bottom = 0;
+  if (W > 760) {
+    const lp = $('list-panel').getBoundingClientRect();
+    left = lp.right;
+    const dp = $('detail-panel');
+    if (!dp.classList.contains('hidden')) right = W - dp.getBoundingClientRect().left;
+    top = 60;
+    bottom = H - $('timeline').getBoundingClientRect().top;
+  } else {
+    top = 50;
+    bottom = H - $('timeline').getBoundingClientRect().top;
+    const dp = $('detail-panel');
+    if (!dp.classList.contains('hidden') && !document.body.classList.contains('m-list')) bottom = Math.max(bottom, H - dp.getBoundingClientRect().top);
+  }
+  viewOff.tx = (left - right) / 2;
+  viewOff.ty = (top - bottom) / 2;
+}
+new ResizeObserver(measureViewOffset).observe(document.body);
+new MutationObserver(measureViewOffset).observe($('detail-panel'), { attributes: true, attributeFilter: ['class'] });
+new MutationObserver(measureViewOffset).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+new ResizeObserver(measureViewOffset).observe($('detail-panel'));
+
+// ====== ループ ======
+let prefFadeTarget = 0;
+let lastFrame = performance.now();
+let hoverTick = 0;
+const clockEl = $('clock');
+function frame(now) {
+  requestAnimationFrame(frame);
+  const rawDt = Math.max(0, (now - lastFrame) / 1000);
+  const dt = Math.min(0.1, rawDt);
+  lastFrame = now;
+  updateFly(now);
+  controls.update(dt);
+  // 注視点が範囲から出すぎないように
+  const t = controls.target;
+  t.x = clamp(t.x, -2600, 2600); t.z = clamp(t.z, -2600, 2600); t.y = clamp(t.y, -MAX_DEPTH * 5, 400);
+  sky.position.copy(camera.position);
+  const dist = camera.position.distanceTo(controls.target);
+  camera.near = clamp(dist * 0.004, 0.5, 60);
+  camera.far = 200000;
+  viewOff.x = lerp(viewOff.x, viewOff.tx, Math.min(1, dt * 5));
+  viewOff.y = lerp(viewOff.y, viewOff.ty, Math.min(1, dt * 5));
+  camera.setViewOffset(innerWidth, innerHeight, -viewOff.x, -viewOff.y, innerWidth, innerHeight);
+  camera.updateProjectionMatrix();
+  sharedZoom.value = clamp(Math.pow(5000 / dist, 0.55), 0.55, 4.2);
+  sharedLift.value = clamp(dist * 0.0012, 0.3, 8);
+  stationU.uRadius.value = clamp(dist * 0.0032, 0.9, 13);
+  stationU.uHScale.value = clamp(dist * 0.004, 1.2, 18);
+  timeU.uClock.value = now / 1000;
+  terrainU.uPrefFade.value = lerp(terrainU.uPrefFade.value, prefFadeTarget, Math.min(1, dt * 4));
+  Timeline.update(Math.min(rawDt, 0.5));
+  // タイムラインで過去を表示しているときは、その時点より後の地震の目印を隠す
+  for (const m of [latestMarker, focusMarker]) {
+    const ev = m.userData.ev;
+    if (ev) m.visible = ev.time <= Timeline.T + 1000 || (m === focusMarker && !!State.eew);
+    if (m.visible) {
+      // 画面の右側にあるときは説明カードを左に出す
+      _v.copy(m.position).project(camera);
+      const flip = (_v.x + 1) / 2 * innerWidth > innerWidth - 300;
+      if (flip !== !!m.userData.flip) { m.userData.flip = flip; m.element.classList.toggle('flip', flip); }
+    }
+  }
+  updateReplay(now);
+  updateWaves(now);
+  updateEEW();
+  updateDepthCorner();
+  if (Timeline.playing || State.replay || fly) hoverDirty = true;
+  if (++hoverTick % 2 === 0) updateHover();
+  if (now - (frame.lastClock || 0) > 500) {
+    frame.lastClock = now;
+    const c = fmtClock(Date.now());
+    clockEl.innerHTML = `<span class="date">${c.slice(0, 10)} </span>${c.slice(11)}<small>JST</small>`;
+  }
+  composer.render();
+  labelRenderer.render(scene, camera);
+}
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+  labelRenderer.setSize(innerWidth, innerHeight);
+  Timeline.draw();
+});
+setInterval(() => { if (!document.hidden) renderList(); }, 30e3);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - (Store.lastRefresh || 0) > 120e3) { Store.lastRefresh = Date.now(); refreshJma(); } });
+
+// ====== 起動 ======
+const Loading = {
+  steps: {},
+  set(key, label, value, done = false) {
+    this.steps[key] = { label, value, done };
+    $('ld-steps').innerHTML = Object.values(this.steps).map((s) => `<div class="${s.done ? 'done' : ''}"><span>${s.label}</span><span>${s.value}</span></div>`).join('');
+  },
+  bar(p) { $('ld-bar').style.width = Math.round(p * 100) + '%'; },
+  hide() { $('loading').classList.add('fade'); setTimeout(() => $('loading').remove(), 900); },
+};
+
+async function main() {
+  $('lg-shindo').innerHTML = SHINDO.slice(1).map((s) => `<span class="${s.dark ? 'dark' : ''}" style="background:${s.color}">${s.txt}</span>`).join('');
+  // 画面が狭いときは凡例を「表示の設定」の中に出す
+  for (const b of $('legend').querySelectorAll('.lg-block')) {
+    const c = b.cloneNode(true);
+    c.querySelectorAll('[id]').forEach((x) => x.removeAttribute('id'));
+    document.querySelector('#layers-panel .lp-legend').appendChild(c);
+  }
+  bindSettings();
+  Timeline.init();
+  applyVisibility();
+  applyExaggeration();
+  if (S.meLat != null) setMe(S.meLat, S.meLon, S.me === 'geo' ? '現在地' : PREFS.find((p) => String(p.code) === S.me)?.cap);
+  requestAnimationFrame(frame);
+
+  Loading.set('terrain', '地形・海底地形', '0%');
+  Loading.set('jma', '気象庁の地震情報', '…');
+  const jmaP = fetchJmaList().then((f) => { Loading.set('jma', '気象庁の地震情報', `${Store.events.size}件`, true); return f; }).catch(async () => {
+    // 気象庁が読めないときは P2P の履歴を使う
+    try {
+      const r = await fetch(`${P2P_API}?codes=551&limit=100`);
+      const arr = await r.json();
+      for (const m of arr.reverse()) ingestP2P(m);
+      Loading.set('jma', '地震情報（P2P）', `${Store.events.size}件`, true);
+    } catch {
+      Loading.set('jma', '地震情報', '取得失敗', true);
+      Store.loadFailed = true;
+    }
+  });
+  try {
+    await loadTerrain((d, n) => { Loading.set('terrain', '地形・海底地形', `${d}/${n}`); Loading.bar(d / n * 0.8); });
+    Loading.set('terrain', '地形・海底地形', HM.failed ? `${HM.total - HM.failed}/${HM.total}` : '完了', true);
+    if (HM.failed) toast(`地形データの一部（${HM.failed}枚）を読み込めませんでした`, 'warn');
+  } catch (e) {
+    Loading.set('terrain', '地形・海底地形', '失敗', true);
+  }
+  terrain.geometry = buildTerrainGeometry(IS_MOBILE ? 0.085 : 0.05);
+  buildWalls();
+  buildFrameLines();
+  buildTrenchLines();
+  buildLabels();
+  if (Me.obj) placeLabel(Me.obj);
+  await jmaP;
+  Loading.bar(1);
+  rebuildJma();
+  Store.lastRefresh = Date.now();
+  await new Promise((r) => setTimeout(r, 280));
+
+  // 導入のカメラ演出
+  const v = Views.oblique();
+  controls.target.copy(v.target);
+  camera.position.copy(v.target).add(new THREE.Vector3().setFromSpherical(new THREE.Spherical(15500, 16 * DEG, -35 * DEG)));
+  Loading.hide();
+  const t0 = performance.now();
+  (function reveal() { const k = clamp((performance.now() - t0) / 1600, 0, 1); terrainU.uReveal.value = k * k; if (k < 1) requestAnimationFrame(reveal); })();
+  setTimeout(() => setView('oblique', 3.2), 250);
+
+  startRealtime();
+  loadPrefectures().then(() => { if (S.me === 'geo') renderList(); }).catch(() => toast('県境データを読み込めませんでした', 'warn'));
+  if (S.range === '20y') loadUsgs('ext', rebuildUsgs).then(rebuildUsgs);
+  let pending = null;
+  loadUsgs('base', () => { clearTimeout(pending); pending = setTimeout(rebuildUsgs, 120); }).then(() => { rebuildUsgs(); });
+}
+main();
+
+// 開発者ツールから確認するための入口
+window.quake3d = { Store, State, S, selectEvent, runDemo, onMessage, setView, Timeline, camera, controls, renderer, composer, scene, U, terrainU };
+</script>
+</body>
+</html>
