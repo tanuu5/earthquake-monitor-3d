@@ -9,6 +9,8 @@ Three.js で作った `index.html` 1ファイルだけで動き、地形や地�
 **▶ ブラウザで開く：[https://tanuu5.github.io/earthquake-monitor-3d/](https://tanuu5.github.io/earthquake-monitor-3d/)**
 （インストール不要。PC・スマホ・タブレットのブラウザで動きます。ホーム画面やデスクトップにアプリとして追加することもできます）
 
+> **English:** A real-time 3D earthquake monitor for Japan. Hypocenters are placed at their true depth beneath the terrain and seafloor, so the subducting plates appear as bands of earthquakes. It also replays P/S waves and intensities, cuts cross-sections, fast-forwards historic earthquakes and shows a globe of world seismicity. **[Open in English](https://tanuu5.github.io/earthquake-monitor-3d/?lang=en)**
+
 ![全体の表示](docs/images/overview.jpg)
 
 ![南から見た地下の震源。太平洋プレートやフィリピン海プレートが沈み込む形が見える](docs/images/cross-section.jpg)
@@ -34,10 +36,13 @@ Three.js で作った `index.html` 1ファイルだけで動き、地形や地�
 - **共有リンク**：右上の共有ボタンで、いま見ている表示（選んだ地震・断面・過去の大地震・地球儀・視点）をリンクにしてコピーします。リンクを開くと同じ表示から始まります。
 - **リアルタイム受信**：P2P地震情報の WebSocket API で地震情報を受け取り、通知音やブラウザの通知でお知らせします。操作していないときは、新しい地震の震源へ自動で視点を移します。
 - **緊急地震速報**：受信すると画面上部に警報を出し、P波・S波の広がりを実際の時間の速さで表示します。「自分の地点」を設定しておくと、揺れ（S波）が届くまでの目安の秒数を表示します。設定画面から架空の地震で表示を確かめる「デモ」も再生できます。
+- **英語表示**：ブラウザの言語が日本語以外なら英語で表示します。右上の「EN」／「日本語」ボタンや、設定の「言語」で切り替えられます。地名や観測点名は気象庁の英語表記を使います。
 
 ![緊急地震速報のデモ表示（訓練用の架空の地震）](docs/images/eew-demo.jpg)
 
 <img src="docs/images/mobile.jpg" alt="スマホでの表示" width="300">
+
+![英語表示](docs/images/english.jpg)
 
 ## 操作方法
 
@@ -55,7 +60,7 @@ Three.js で作った `index.html` 1ファイルだけで動き、地形や地�
 | パネルを閉じる | Esc | ×ボタン |
 
 右下の「表示の設定」から、表示するものの切り替え、深さの強調（×1〜×5）、地形の起伏の強調（×1〜×30）を変更できます。
-右上の「設定」では、通知音・デスクトップ通知・自分の地点・緊急地震速報のデモを設定できます。設定はブラウザの中にだけ保存されます。
+右上の「設定」では、通知音・デスクトップ通知・自分の地点・緊急地震速報のデモ・表示言語を設定できます。設定はブラウザの中にだけ保存されます。
 
 ## 表示されているもの
 
@@ -113,6 +118,7 @@ python3 -m http.server 8765
 ブラウザで `http://localhost:8765/` を開きます。
 
 - URL に `?sandbox` を付けると、P2P地震情報の試験配信（過去の情報を約30秒ごとに再送）に接続します。
+- URL に `?lang=en` または `?lang=ja` を付けると、表示言語を指定できます（付けないときは設定、なければブラウザの言語に従います）。
 - ブラウザのコンソールから `window.quake3d` で内部の状態を確認できます（例：`quake3d.runDemo()` で緊急地震速報のデモ）。
 - 共有リンクは URL の `#` 以降に表示の状態を入れています。
 
@@ -135,6 +141,7 @@ python3 -m http.server 8765
 - **県ごとの塗り分け**：県境データ（TopoJSON）を標高タイルと同じ座標のラスターに自前で塗りつぶし、シェーダから参照しています。
 - **地球儀**：地球全体の標高タイル（ズームレベル3）を1枚にまとめて陰影を焼き込み、緯度・経度1度ごとの球に貼っています。日本付近だけは詳しい地形を見せ、地球儀のあいだは OrbitControls の回転軸を地球の自転軸に切り替えて北が上になるようにしています。
 - **リアルタイム受信**：P2P地震情報の WebSocket に接続します。Web Locks API と BroadcastChannel で、複数タブのうち1つだけが接続して他のタブに中継します。
+- **英語表示**：画面の文言は `t('日本語', 'English')` で切り替え、HTML の固定部分は `data-en` 属性に英語を持たせています。地名は気象庁の英語名を使い、P2P地震情報から届く地名（日本語だけ）は気象庁の一覧で見た英語名に置き換えます。
 - **PWA**：サービスワーカーで、アプリ本体はネット優先、three.js と地形タイルは一度取ったら保存した版を使い、県境・プレート境界は保存した版を返しながら裏で更新します。地震の情報（気象庁・P2P地震情報・USGS）は保存しません。
 - **使用技術**：Three.js（r186）、WebGL2、Web Audio API
 

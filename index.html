@@ -82,6 +82,9 @@ svg.ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-wid
 .icon-btn { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: var(--sub); transition: background .15s, color .15s; }
 .icon-btn:hover { background: rgba(150, 185, 255, 0.10); color: var(--text); }
 .icon-btn.on { color: var(--accent); background: rgba(94, 200, 255, 0.12); }
+.lang-btn { width: auto; min-width: 34px; padding: 0 7px; font-size: 11.5px; font-weight: 700; letter-spacing: .04em; }
+html[lang="en"] .lang-ja { display: none !important; }
+html:not([lang="en"]) .lang-en { display: none !important; }
 
 /* ---- 地震一覧 ---- */
 #list-panel { top: calc(var(--gap) + 58px + var(--sat)); left: var(--gap); bottom: var(--gap); width: var(--list-w); display: flex; flex-direction: column; z-index: 10; overflow: hidden; }
@@ -222,7 +225,7 @@ svg.ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-wid
 @keyframes eew-glow { 50% { box-shadow: 0 0 0 1px rgba(255, 60, 50, 0.6), 0 18px 80px rgba(255, 30, 20, 0.6); } }
 .eew-top { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(0, 0, 0, 0.22); }
 .eew-tag { font-weight: 800; letter-spacing: .08em; font-size: 15px; }
-.eew-sub { font-size: 12px; color: #ffc9c4; }
+.eew-sub { font-size: 12px; color: #ffc9c4; white-space: nowrap; }
 .eew-top .icon-btn { margin-left: auto; color: #ffd4d0; }
 .eew-body { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 12px 16px 14px; align-items: center; }
 .eew-name { font-size: 20px; font-weight: 800; }
@@ -365,6 +368,7 @@ body.picking #stage canvas { cursor: crosshair !important; }
   .brand .logo { width: 24px; height: 24px; }
   .brand-title { font-size: 13px; white-space: nowrap; }
   .brand-sub { display: none; }
+  .bt-long, #btn-lang { display: none; }
   .clock .date { display: none; }
   .latest-chip { display: none !important; }
   .top-right { height: 42px; padding: 0 2px 0 8px; gap: 2px; }
@@ -455,36 +459,37 @@ body.picking #stage canvas { cursor: crosshair !important; }
       <circle cx="16" cy="16" r="9" fill="none" stroke="url(#lg1)" stroke-width="1.2" opacity=".35"/>
       <path d="M3 17h5l2.2-6 3.4 12 3-15 2.8 13 2.2-7 1.8 3H29" fill="none" stroke="url(#lg1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
-    <div class="brand-text"><div class="brand-title">地震3Dモニター</div><div class="brand-sub">JAPAN SEISMIC 3D</div></div>
+    <div class="brand-text"><div class="brand-title" data-en-html="Earthquake 3D<span class=&quot;bt-long&quot;> Monitor</span>">地震3Dモニター</div><div class="brand-sub">JAPAN SEISMIC 3D</div></div>
   </div>
-  <button id="latest-chip" class="latest-chip panel hidden" style="position:static" title="最新の地震へ移動"></button>
+  <button id="latest-chip" class="latest-chip panel hidden" style="position:static" title="最新の地震へ移動" data-en-title="Go to the latest earthquake"></button>
   <div class="top-spacer"></div>
   <div class="top-right panel" style="position:static">
     <div id="clock" class="clock num">--</div>
-    <div id="conn" class="conn"><span class="dot"></span><span class="txt">接続中…</span></div>
-    <button id="btn-share" class="icon-btn" title="いまの表示をリンクで共有" aria-label="共有"><svg class="ic" viewBox="0 0 24 24"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/></svg></button>
-    <button id="btn-settings" class="icon-btn" title="設定" aria-label="設定"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/></svg></button>
-    <button id="btn-help" class="icon-btn" title="使い方" aria-label="使い方"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.2-2.4 3.7"/><path d="M12 17.2v.1"/></svg></button>
+    <div id="conn" class="conn"><span class="dot"></span><span class="txt" data-en="Connecting…">接続中…</span></div>
+    <button id="btn-lang" class="icon-btn lang-btn" title="English" aria-label="Switch to English" data-en="日本語" data-en-title="日本語で表示" data-en-aria="日本語で表示">EN</button>
+    <button id="btn-share" class="icon-btn" title="いまの表示をリンクで共有" aria-label="共有" data-en-title="Share this view as a link" data-en-aria="Share"><svg class="ic" viewBox="0 0 24 24"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/></svg></button>
+    <button id="btn-settings" class="icon-btn" title="設定" aria-label="設定" data-en-title="Settings" data-en-aria="Settings"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/></svg></button>
+    <button id="btn-help" class="icon-btn" title="使い方" aria-label="使い方" data-en-title="Help" data-en-aria="Help"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.2-2.4 3.7"/><path d="M12 17.2v.1"/></svg></button>
   </div>
 </header>
 
-<aside id="list-panel" class="panel" aria-label="地震の一覧">
+<aside id="list-panel" class="panel" aria-label="地震の一覧" data-en-aria="Earthquake list">
   <div class="panel-tabs" role="tablist">
-    <button class="ptab on" data-ptab="recent" role="tab" aria-selected="true">最近の地震</button>
-    <button class="ptab" data-ptab="archive" role="tab" aria-selected="false">過去の大地震</button>
+    <button class="ptab on" data-ptab="recent" role="tab" aria-selected="true" data-en="Recent">最近の地震</button>
+    <button class="ptab" data-ptab="archive" role="tab" aria-selected="false" data-en="Historic">過去の大地震</button>
     <span class="ph-count num" id="list-count"></span>
   </div>
   <div class="pane" id="recent-pane">
     <div class="chips" id="list-filter">
-      <button class="chip" data-min="1">震度1以上</button>
-      <button class="chip" data-min="3">震度3以上</button>
-      <button class="chip" data-min="4">震度4以上</button>
-      <button class="chip" data-min="5">5弱以上</button>
+      <button class="chip" data-min="1" data-en="Shindo ≥1">震度1以上</button>
+      <button class="chip" data-min="3" data-en="≥3">3以上</button>
+      <button class="chip" data-min="4" data-en="≥4">4以上</button>
+      <button class="chip" data-min="5" data-en="≥5-">5弱以上</button>
     </div>
-    <div id="quake-list" class="quake-list"><div class="q-empty">地震情報を取得しています…</div></div>
+    <div id="quake-list" class="quake-list"><div class="q-empty" data-en="Loading earthquake reports…">地震情報を取得しています…</div></div>
   </div>
   <div class="pane hidden" id="archive-pane">
-    <div class="arch-note">選ぶと、本震の前後の地震を早送りで再生します。震源は USGS のデータで、日本付近ではおおむね M4 以上です。</div>
+    <div class="arch-note" data-en="Pick one to fast-forward the earthquakes before and after the mainshock. Hypocenters are from USGS (roughly M4 and above near Japan).">選ぶと、本震の前後の地震を早送りで再生します。震源は USGS のデータで、日本付近ではおおむね M4 以上です。</div>
     <div id="archive-list" class="quake-list"></div>
   </div>
 </aside>
@@ -493,98 +498,98 @@ body.picking #stage canvas { cursor: crosshair !important; }
 
 <div id="legend" class="panel">
   <div class="lg-block">
-    <span class="lg-title">震源の深さ（過去の震源の色）</span>
+    <span class="lg-title" data-en="Hypocenter depth (past quakes)">震源の深さ（過去の震源の色）</span>
     <div class="lg-depth"></div>
     <div class="lg-ticks"><span>0</span><span>30</span><span>70</span><span>150</span><span>300</span><span>450</span><span>600km</span></div>
   </div>
   <div class="lg-block">
-    <span class="lg-title">最大震度（最近の地震の色）</span>
+    <span class="lg-title" data-en="Max. Shindo (recent quakes)">最大震度（最近の地震の色）</span>
     <div class="lg-shindo" id="lg-shindo"></div>
-    <div class="lg-mag"><span>大きさ＝マグニチュード</span><i style="width:5px;height:5px"></i><i style="width:8px;height:8px"></i><i style="width:12px;height:12px"></i></div>
+    <div class="lg-mag"><span data-en="Size = magnitude">大きさ＝マグニチュード</span><i style="width:5px;height:5px"></i><i style="width:8px;height:8px"></i><i style="width:12px;height:12px"></i></div>
   </div>
 </div>
 
 <div id="viewbar" class="panel">
-  <button data-view="oblique" class="txt-btn" title="斜め上から見る (1)">俯瞰</button>
-  <button data-view="top" class="txt-btn" title="真上から見る (2)">真上</button>
-  <button data-view="south" class="txt-btn" title="南から断面を見る (3)">南から</button>
-  <button data-view="east" class="txt-btn" title="東から断面を見る (4)">東から</button>
+  <button data-view="oblique" class="txt-btn" title="斜め上から見る (1)" data-en="Oblique" data-en-title="View from above at an angle (1)">俯瞰</button>
+  <button data-view="top" class="txt-btn" title="真上から見る (2)" data-en="Top" data-en-title="View from directly above (2)">真上</button>
+  <button data-view="south" class="txt-btn" title="南から断面を見る (3)" data-en="South" data-en-title="Side view from the south (3)">南から</button>
+  <button data-view="east" class="txt-btn" title="東から断面を見る (4)" data-en="East" data-en-title="Side view from the east (4)">東から</button>
   <span class="sep txt-btn"></span>
-  <button id="btn-globe" title="地球全体を見る（G）：大きくズームアウトしても切り替わります" aria-label="地球儀"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.9 5.2 3.9 8.5s-1.3 6.1-3.9 8.5c-2.6-2.4-3.9-5.2-3.9-8.5s1.3-6.1 3.9-8.5z"/></svg><span class="txt-btn">地球</span></button>
-  <button id="btn-section" title="断面を見る：地図上の2点を結ぶ線で地下を切ります (S)" aria-label="断面"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7.5l9-4 9 4"/><path d="M4 9v10.5h16V9"/><path d="M7 13.5l3 1.2 3 2.2 4 1" stroke-dasharray="1.6 1.8"/></svg><span class="txt-btn">断面</span></button>
-  <button id="btn-rotate" title="自動回転" aria-label="自動回転"><svg class="ic" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5v4.4h-4.4"/></svg></button>
-  <button id="btn-layers" title="表示の設定" aria-label="表示の設定"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5l9 4.8-9 4.8-9-4.8z"/><path d="M3 12.6l9 4.8 9-4.8"/><path d="M3 16.6l9 4.8 9-4.8" opacity=".55"/></svg></button>
+  <button id="btn-globe" title="地球全体を見る（G）：大きくズームアウトしても切り替わります" aria-label="地球儀" data-en-title="View the whole Earth (G). Zooming far out also switches to the globe." data-en-aria="Globe"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.9 5.2 3.9 8.5s-1.3 6.1-3.9 8.5c-2.6-2.4-3.9-5.2-3.9-8.5s1.3-6.1 3.9-8.5z"/></svg><span class="txt-btn" data-en="Globe">地球</span></button>
+  <button id="btn-section" title="断面を見る：地図上の2点を結ぶ線で地下を切ります (S)" aria-label="断面" data-en-title="Cross-section: cut the underground along a line between two points on the map (S)" data-en-aria="Cross-section"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7.5l9-4 9 4"/><path d="M4 9v10.5h16V9"/><path d="M7 13.5l3 1.2 3 2.2 4 1" stroke-dasharray="1.6 1.8"/></svg><span class="txt-btn" data-en="Section">断面</span></button>
+  <button id="btn-rotate" title="自動回転" aria-label="自動回転" data-en-title="Auto-rotate" data-en-aria="Auto-rotate"><svg class="ic" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5v4.4h-4.4"/></svg></button>
+  <button id="btn-layers" title="表示の設定" aria-label="表示の設定" data-en-title="Layers" data-en-aria="Layers"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5l9 4.8-9 4.8-9-4.8z"/><path d="M3 12.6l9 4.8 9-4.8"/><path d="M3 16.6l9 4.8 9-4.8" opacity=".55"/></svg></button>
 </div>
 
 <div id="layers-panel" class="panel hidden">
-  <div class="lp-title">表示</div>
-  <label class="tg"><span>最近の地震<small>気象庁の地震情報（約1か月）</small></span><input type="checkbox" data-set="showJma"><span class="sw"></span></label>
-  <label class="tg"><span>過去の震源<small>USGS（M4以上。20年表示ではM5以上）</small></span><input type="checkbox" data-set="showUsgs"><span class="sw"></span></label>
-  <label class="tg"><span>震度観測点<small>選んだ地震の各地の震度</small></span><input type="checkbox" data-set="showStations"><span class="sw"></span></label>
-  <label class="tg"><span>都道府県の震度</span><input type="checkbox" data-set="showPrefTint"><span class="sw"></span></label>
-  <label class="tg"><span>県境</span><input type="checkbox" data-set="showBorders"><span class="sw"></span></label>
-  <label class="tg"><span>プレート境界（海溝・トラフ）</span><input type="checkbox" data-set="showPlates"><span class="sw"></span></label>
-  <label class="tg"><span>地名</span><input type="checkbox" data-set="showLabels"><span class="sw"></span></label>
-  <label class="tg"><span>地下の壁と深さ目盛り</span><input type="checkbox" data-set="showWalls"><span class="sw"></span></label>
+  <div class="lp-title" data-en="Layers">表示</div>
+  <label class="tg"><span data-en-html="Recent earthquakes<small>JMA reports (about the last month)</small>">最近の地震<small>気象庁の地震情報（約1か月）</small></span><input type="checkbox" data-set="showJma"><span class="sw"></span></label>
+  <label class="tg"><span data-en-html="Past hypocenters<small>USGS (M4+; M5+ in the 20-year view)</small>">過去の震源<small>USGS（M4以上。20年表示ではM5以上）</small></span><input type="checkbox" data-set="showUsgs"><span class="sw"></span></label>
+  <label class="tg"><span data-en-html="Intensity stations<small>Shindo at each station for the selected quake</small>">震度観測点<small>選んだ地震の各地の震度</small></span><input type="checkbox" data-set="showStations"><span class="sw"></span></label>
+  <label class="tg"><span data-en-html="Shindo by prefecture">都道府県の震度</span><input type="checkbox" data-set="showPrefTint"><span class="sw"></span></label>
+  <label class="tg"><span data-en-html="Prefecture borders">県境</span><input type="checkbox" data-set="showBorders"><span class="sw"></span></label>
+  <label class="tg"><span data-en-html="Plate boundaries (trenches &amp; troughs)">プレート境界（海溝・トラフ）</span><input type="checkbox" data-set="showPlates"><span class="sw"></span></label>
+  <label class="tg"><span data-en-html="Place names">地名</span><input type="checkbox" data-set="showLabels"><span class="sw"></span></label>
+  <label class="tg"><span data-en-html="Underground walls &amp; depth scale">地下の壁と深さ目盛り</span><input type="checkbox" data-set="showWalls"><span class="sw"></span></label>
   <div class="lp-sep"></div>
-  <div class="sl"><div class="sl-head"><span>深さの強調</span><b id="v-depth">×2.0</b></div><input type="range" min="1" max="5" step="0.25" data-set="depthExag"></div>
-  <div class="sl"><div class="sl-head"><span>地形の起伏の強調</span><b id="v-land">×10</b></div><input type="range" min="1" max="30" step="1" data-set="landExag"></div>
+  <div class="sl"><div class="sl-head"><span data-en="Depth exaggeration">深さの強調</span><b id="v-depth">×2.0</b></div><input type="range" min="1" max="5" step="0.25" data-set="depthExag"></div>
+  <div class="sl"><div class="sl-head"><span data-en="Terrain exaggeration">地形の起伏の強調</span><b id="v-land">×10</b></div><input type="range" min="1" max="30" step="1" data-set="landExag"></div>
   <div class="lp-legend"><div class="lp-sep"></div></div>
 </div>
 
-<div id="section-panel" class="panel hidden" aria-label="断面図">
+<div id="section-panel" class="panel hidden" aria-label="断面図" data-en-aria="Cross-section">
   <div class="sp-head">
-    <div class="sp-left"><span class="sp-title">断面<b id="sp-name"></b></span><span class="sp-meta num" id="sp-meta"></span><button class="icon-btn sp-close-m" id="sp-close2" aria-label="断面を閉じる"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="sp-left"><span class="sp-title"><span data-en="Section">断面</span><b id="sp-name"></b></span><span class="sp-meta num" id="sp-meta"></span><button class="icon-btn sp-close-m" id="sp-close2" aria-label="断面を閉じる" data-en-aria="Close the cross-section"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="sp-right">
-      <label class="sp-width" title="断面から何km以内の震源を表示するか">幅<input type="range" id="sp-width" min="10" max="200" step="10"><b id="sp-wv"></b></label>
-      <select id="sp-preset" aria-label="断面の例"></select>
-      <button class="btn" id="sp-redraw" style="height:28px;padding:0 10px" title="地図上で断面を引き直す"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/></svg><span class="sp-redraw-t">引き直す</span></button>
-      <button class="icon-btn" id="sp-expand" title="断面図を大きく表示" aria-label="断面図を大きく表示"><svg class="ic" viewBox="0 0 24 24"><path d="M4 14v6h6M20 10V4h-6M4 20l7-7M20 4l-7 7"/></svg></button>
-      <button class="icon-btn" id="sp-close" aria-label="断面を閉じる"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <label class="sp-width" title="断面から何km以内の震源を表示するか" data-en-title="Show hypocenters within this distance of the line"><span data-en="Width">幅</span><input type="range" id="sp-width" min="10" max="200" step="10"><b id="sp-wv"></b></label>
+      <select id="sp-preset" aria-label="断面の例" data-en-aria="Example sections"></select>
+      <button class="btn" id="sp-redraw" style="height:28px;padding:0 10px" title="地図上で断面を引き直す" data-en-title="Draw the line again on the map"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/></svg><span class="sp-redraw-t" data-en="Redraw">引き直す</span></button>
+      <button class="icon-btn" id="sp-expand" title="断面図を大きく表示" aria-label="断面図を大きく表示" data-en-title="Enlarge the cross-section" data-en-aria="Enlarge the cross-section"><svg class="ic" viewBox="0 0 24 24"><path d="M4 14v6h6M20 10V4h-6M4 20l7-7M20 4l-7 7"/></svg></button>
+      <button class="icon-btn" id="sp-close" aria-label="断面を閉じる" data-en-aria="Close the cross-section"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
   </div>
-  <canvas id="sp-canvas" aria-label="断面図：横軸は距離、縦軸は深さ"></canvas>
+  <canvas id="sp-canvas" aria-label="断面図：横軸は距離、縦軸は深さ" data-en-aria="Cross-section: distance across, depth down"></canvas>
 </div>
 
-<div id="pick-hint" class="panel hidden"><span id="pick-text"></span><button class="btn" id="pick-cancel" style="height:28px;padding:0 10px">やめる</button></div>
+<div id="pick-hint" class="panel hidden"><span id="pick-text"></span><button class="btn" id="pick-cancel" style="height:28px;padding:0 10px" data-en="Cancel">やめる</button></div>
 
 <div id="timeline" class="panel">
-  <button class="tl-play" id="tl-play" title="地震活動を早送り再生 (Space)" aria-label="再生"><svg viewBox="0 0 24 24" id="tl-play-ic"><path d="M8 5.5v13l10.5-6.5z"/></svg></button>
+  <button class="tl-play" id="tl-play" title="地震活動を早送り再生 (Space)" aria-label="再生" data-en-title="Fast-forward earthquake activity (Space)" data-en-aria="Play"><svg viewBox="0 0 24 24" id="tl-play-ic"><path d="M8 5.5v13l10.5-6.5z"/></svg></button>
   <div class="tl-body">
     <div class="tl-top">
       <div class="tl-ranges" id="tl-ranges"></div>
       <div class="tl-info" id="tl-info"></div>
-      <button class="tl-speed" id="tl-speed" title="再生速度">×1</button>
-      <button class="tl-live on" id="tl-live" title="現在時刻の表示に戻る">LIVE</button>
+      <button class="tl-speed" id="tl-speed" title="再生速度" data-en-title="Playback speed">×1</button>
+      <button class="tl-live on" id="tl-live" title="現在時刻の表示に戻る" data-en-title="Back to the current time">LIVE</button>
     </div>
-    <canvas id="tl-canvas" aria-label="地震活動のタイムライン"></canvas>
+    <canvas id="tl-canvas" aria-label="地震活動のタイムライン" data-en-aria="Earthquake activity timeline"></canvas>
   </div>
 </div>
 
 <div id="eew" class="hidden" role="alert" aria-live="assertive">
-  <div class="eew-top"><span class="eew-tag" id="eew-tag">緊急地震速報（警報）</span><span class="eew-sub" id="eew-sub"></span><button class="icon-btn" id="eew-close" aria-label="閉じる"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="eew-top"><span class="eew-tag" id="eew-tag" data-en="Earthquake Early Warning">緊急地震速報（警報）</span><span class="eew-sub" id="eew-sub"></span><button class="icon-btn" id="eew-close" aria-label="閉じる" data-en-aria="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="eew-body">
     <div><div class="eew-name" id="eew-name"></div><div class="eew-meta" id="eew-meta"></div></div>
-    <div class="eew-max"><div class="eew-max-label">予想最大震度</div><div id="eew-max"></div></div>
+    <div class="eew-max"><div class="eew-max-label" data-en="Expected max. Shindo">予想最大震度</div><div id="eew-max"></div></div>
     <div class="eew-count hidden" id="eew-count"></div>
     <div class="eew-areas" id="eew-areas"></div>
   </div>
 </div>
 
 <div id="replay-hud" class="panel hidden">
-  <span class="rh-label">揺れの広がりを再生中</span>
-  <b id="rh-time">+0.0秒</b>
-  <span class="rh-wave"><span><i style="background:#4aa8ff"></i>P波</span><span><i style="background:#ff6a2a"></i>S波</span></span>
-  <button class="btn" id="rh-skip" style="height:28px;padding:0 10px">スキップ</button>
+  <span class="rh-label" data-en="Replaying the shaking">揺れの広がりを再生中</span>
+  <b id="rh-time" data-en="+0.0 s">+0.0秒</b>
+  <span class="rh-wave"><span><i style="background:#4aa8ff"></i><span data-en="P-wave">P波</span></span><span><i style="background:#ff6a2a"></i><span data-en="S-wave">S波</span></span></span>
+  <button class="btn" id="rh-skip" style="height:28px;padding:0 10px" data-en="Skip">スキップ</button>
 </div>
 
 <div id="tooltip" class="hidden"></div>
 <div id="toasts"></div>
 
 <nav id="mobile-tabs" class="panel">
-  <button data-tab="list"><svg class="ic" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>一覧</button>
+  <button data-tab="list"><svg class="ic" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span data-en="List">一覧</span></button>
   <button data-tab="map" class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5l9 4.8-9 4.8-9-4.8z"/><path d="M3 12.6l9 4.8 9-4.8"/></svg>3D</button>
-  <button data-tab="settings"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/></svg>設定</button>
+  <button data-tab="settings"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/></svg><span data-en="Settings">設定</span></button>
 </nav>
 
 <div id="loading">
@@ -594,7 +599,7 @@ body.picking #stage canvas { cursor: crosshair !important; }
       <circle cx="16" cy="16" r="14.5" fill="none" stroke="url(#lg2)" stroke-width="1" opacity=".5"/>
       <path d="M3 17h5l2.2-6 3.4 12 3-15 2.8 13 2.2-7 1.8 3H29" fill="none" stroke="url(#lg2)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
-    <div class="ld-title">地震3Dモニター</div>
+    <div class="ld-title" data-en="Earthquake 3D Monitor">地震3Dモニター</div>
     <div class="ld-sub">JAPAN SEISMIC 3D</div>
     <div class="ld-bar"><i id="ld-bar"></i></div>
     <div class="ld-steps" id="ld-steps"></div>
@@ -602,36 +607,41 @@ body.picking #stage canvas { cursor: crosshair !important; }
   </div>
 </div>
 
-<div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="設定">
+<div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="設定" data-en-aria="Settings">
   <div class="modal-box">
-    <div class="modal-head"><h2>設定</h2><button class="icon-btn" data-close aria-label="閉じる"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="modal-head"><h2 data-en="Settings">設定</h2><button class="icon-btn" data-close aria-label="閉じる" data-en-aria="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="modal-body">
-      <h3>お知らせ</h3>
-      <label class="tg set-row"><span>新しい地震の通知音<small>設定した震度以上で鳴らします</small></span><input type="checkbox" data-set="sound"><span class="sw"></span></label>
-      <label class="tg set-row"><span>緊急地震速報の警報音</span><input type="checkbox" data-set="eewSound"><span class="sw"></span></label>
-      <label class="tg set-row"><span>デスクトップ通知<small>ブラウザの通知を使います</small></span><input type="checkbox" data-set="notify" id="set-notify"><span class="sw"></span></label>
-      <div class="set-row"><span>通知・通知音の対象</span>
+      <h3 data-en="Alerts">お知らせ</h3>
+      <label class="tg set-row"><span data-en-html="Sound for new earthquakes<small>Plays at or above the Shindo below</small>">新しい地震の通知音<small>設定した震度以上で鳴らします</small></span><input type="checkbox" data-set="sound"><span class="sw"></span></label>
+      <label class="tg set-row"><span data-en-html="Alarm for Earthquake Early Warnings">緊急地震速報の警報音</span><input type="checkbox" data-set="eewSound"><span class="sw"></span></label>
+      <label class="tg set-row"><span data-en-html="Desktop notifications<small>Uses your browser&#39;s notifications</small>">デスクトップ通知<small>ブラウザの通知を使います</small></span><input type="checkbox" data-set="notify" id="set-notify"><span class="sw"></span></label>
+      <div class="set-row"><span data-en="Notify from">通知・通知音の対象</span>
         <select data-set="notifyMin">
-          <option value="1">震度1以上</option><option value="2">震度2以上</option><option value="3">震度3以上</option><option value="4">震度4以上</option><option value="5">震度5弱以上</option><option value="7">震度6弱以上</option>
+          <option value="1" data-en="Shindo 1 or more">震度1以上</option><option value="2" data-en="Shindo 2 or more">震度2以上</option><option value="3" data-en="Shindo 3 or more">震度3以上</option><option value="4" data-en="Shindo 4 or more">震度4以上</option><option value="5" data-en="Shindo 5- or more">震度5弱以上</option><option value="7" data-en="Shindo 6- or more">震度6弱以上</option>
         </select>
       </div>
-      <label class="tg set-row"><span>新しい地震に自動で移動<small>操作していないときだけ震源へ視点を動かします</small></span><input type="checkbox" data-set="autoFocus"><span class="sw"></span></label>
-      <div class="set-row"><span>音のテスト<small>ブラウザの仕様で、ページを一度クリック（タップ）するまで音は鳴りません</small></span><div class="set-actions"><button class="btn" id="test-chime">通知音</button><button class="btn" id="test-alarm">警報音</button></div></div>
-      <h3>自分の地点</h3>
-      <div class="set-row"><span>地点<small>緊急地震速報のとき、揺れ（S波）が届くまでの目安秒数を表示します</small></span>
+      <label class="tg set-row"><span data-en-html="Fly to new earthquakes<small>Only while you are not using the map</small>">新しい地震に自動で移動<small>操作していないときだけ震源へ視点を動かします</small></span><input type="checkbox" data-set="autoFocus"><span class="sw"></span></label>
+      <div class="set-row"><span data-en-html="Test sounds<small>Browsers play no sound until you click (tap) the page once</small>">音のテスト<small>ブラウザの仕様で、ページを一度クリック（タップ）するまで音は鳴りません</small></span><div class="set-actions"><button class="btn" id="test-chime" data-en="Chime">通知音</button><button class="btn" id="test-alarm" data-en="Alarm">警報音</button></div></div>
+      <h3 data-en="Your location">自分の地点</h3>
+      <div class="set-row"><span data-en-html="Location<small>During an Early Warning, shows about how many seconds until the shaking (S-wave) arrives</small>">地点<small>緊急地震速報のとき、揺れ（S波）が届くまでの目安秒数を表示します</small></span>
         <select id="set-me"></select>
       </div>
-      <div class="set-row"><span>現在地を使う<small>位置情報はこのブラウザの中だけで使います</small></span><button class="btn" id="btn-geo">現在地を取得</button></div>
-      <h3>緊急地震速報のデモ</h3>
-      <div class="set-row"><span>架空の地震で表示を確認<small>訓練用の表示です。実際の情報ではありません</small></span><button class="btn" id="btn-demo">デモを再生</button></div>
+      <div class="set-row"><span data-en-html="Use my current location<small>Your location is used only inside this browser</small>">現在地を使う<small>位置情報はこのブラウザの中だけで使います</small></span><button class="btn" id="btn-geo" data-en="Get location">現在地を取得</button></div>
+      <h3 data-en="Early Warning demo">緊急地震速報のデモ</h3>
+      <div class="set-row"><span data-en-html="Try it with a fictional earthquake<small>A drill display, not real information</small>">架空の地震で表示を確認<small>訓練用の表示です。実際の情報ではありません</small></span><button class="btn" id="btn-demo" data-en="Play demo">デモを再生</button></div>
+      <h3>表示言語 / Language</h3>
+      <div class="set-row"><span data-en-html="Language<small>Auto follows your browser</small>">言語<small>自動ではブラウザの言語に合わせます</small></span>
+        <select id="set-lang"><option value="auto" data-en="Auto">自動</option><option value="ja">日本語</option><option value="en">English</option></select>
+      </div>
     </div>
   </div>
 </div>
 
-<div id="help-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="使い方">
+<div id="help-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="使い方" data-en-aria="Help">
   <div class="modal-box">
-    <div class="modal-head"><h2>地震3Dモニターについて</h2><button class="icon-btn" data-close aria-label="閉じる"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="modal-head"><h2 data-en="About Earthquake 3D Monitor">地震3Dモニターについて</h2><button class="icon-btn" data-close aria-label="閉じる" data-en-aria="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="modal-body">
+      <div class="lang-ja">
       <h3>見えているもの</h3>
       <ul>
         <li>地面の下に浮かぶ光の点が<b>震源</b>です。小さな点（過去の震源）の色は深さ、大きな点（最近の地震）の色は最大震度、大きさはマグニチュードを表します。</li>
@@ -661,12 +671,45 @@ body.picking #stage canvas { cursor: crosshair !important; }
       </ul>
       <h3>ご注意</h3>
       <p>このツールは防災の参考情報です。緊急地震速報の表示は遅れたり届かなかったりすることがあります。揺れの到達秒数は単純な速度（P波 毎秒7km・S波 毎秒4km）による目安です。身を守る行動は、気象庁や自治体の発表・テレビ・ラジオ・スマートフォンの緊急速報に従ってください。</p>
+      </div>
+      <div class="lang-en">
+      <h3>What you see</h3>
+      <ul>
+        <li>The glowing dots under the ground are <b>hypocenters</b>. Small dots (past quakes) are colored by depth, large dots (recent quakes) by maximum Shindo (JMA seismic intensity), and their size shows the magnitude.</li>
+        <li>The band of hypocenters sinking diagonally beneath Japan is the very shape of <b>the Pacific and Philippine Sea plates diving under the islands</b> (the Wadati–Benioff zone). It stands out when viewed from the side with “South” or “East”.</li>
+        <li>Red lines are trenches and troughs (plate boundaries). Depth and terrain are exaggerated for visibility (defaults: depth ×2, terrain ×10).</li>
+      </ul>
+      <h3>Controls</h3>
+      <ul>
+        <li>Drag to rotate, right-drag (two fingers) to pan, scroll (pinch) to zoom.</li>
+        <li>Click a dot or a list item to fly to the hypocenter and replay <b>the spreading shaking (P and S waves) and the Shindo at each station</b>.</li>
+        <li>Choose a period on the timeline at the bottom and press ▶ to fast-forward earthquake activity. Drag the bar to show any moment.</li>
+        <li>Press “Globe” at the bottom right (<kbd>G</kbd>), or zoom far out, to see the whole Earth with world earthquakes and plate boundaries. Zoom back in on Japan to return to the detailed view.</li>
+        <li>In the “Historic” tab of the list, pick a major earthquake such as the 2011 Tohoku or the 2024 Noto Peninsula earthquake to fast-forward the quakes before and after the mainshock. It pauses at the mainshock to show the shaking spread.</li>
+        <li>Press “Section” at the bottom right and click two points on the map to cut the underground along that line. Only hypocenters near the line (±50 km by default) remain, and a distance–depth <b>cross-section</b> appears at the bottom. You can also pick ready-made examples such as Tohoku or Izu–Bonin.</li>
+        <li>The share button at the top right copies a link to what you are looking at (the selected quake, section, historic quake, globe and camera). The link opens the same view.</li>
+        <li>Keyboard: <kbd>Space</kbd> play/pause, <kbd>1</kbd>–<kbd>4</kbd> views, <kbd>S</kbd> section, <kbd>G</kbd> globe, <kbd>R</kbd> reset view, <kbd>Esc</kbd> close</li>
+      </ul>
+      <h3>Data</h3>
+      <ul>
+        <li>Earthquake reports and intensity stations: <a href="https://www.jma.go.jp/jma/indexe.html" target="_blank" rel="noopener">Japan Meteorological Agency</a> (bosai JSON)</li>
+        <li>Live updates and Earthquake Early Warnings: <a href="https://www.p2pquake.net/" target="_blank" rel="noopener">P2P Quake</a> WebSocket API</li>
+        <li>Past hypocenters: <a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener">USGS</a> Earthquake Catalog</li>
+        <li>Terrain and bathymetry: Mapzen Terrain Tiles (AWS Open Data; SRTM, GMTED2010, ETOPO1 and more)</li>
+        <li>Prefecture borders: <a href="https://github.com/dataofjapan/land" target="_blank" rel="noopener">dataofjapan/land</a> (source: Global Map Japan)</li>
+        <li>World plate boundaries (globe): Peter Bird (2003) PB2002 (<a href="https://github.com/fraxen/tectonicplates" target="_blank" rel="noopener">converted by Hugo Ahlenius / Nordpil</a>, ODC-By 1.0)</li>
+        <li>Rendering: <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a></li>
+      </ul>
+      <h3>Please note</h3>
+      <p>This tool is for reference only. Early Warning displays can be late or missing. Arrival times are rough estimates using simple speeds (P-wave 7 km/s, S-wave 4 km/s). To stay safe, follow official information from JMA and local governments, TV, radio and the emergency alerts on your phone.</p>
+      <p>English place names come from JMA's English data. Early Warning areas are shown by prefecture, and some messages from P2P Quake may appear in Japanese. Times are Japan Standard Time (JST).</p>
+      </div>
       <p style="color:var(--dim);font-size:11.5px">Built with Claude (Opus 5.5) · © 2026 たぬ · MIT License</p>
     </div>
   </div>
 </div>
 
-<footer id="credits">データ：気象庁・P2P地震情報・USGS ／ 地形：Mapzen Terrain Tiles（AWS Open Data） ／ 県境：dataofjapan/land（地球地図日本） ／ プレート境界：PB2002（Bird 2003） ／ Built with Claude (Opus 5.5)</footer>
+<footer id="credits" data-en="Data: JMA · P2P Quake · USGS / Terrain: Mapzen Terrain Tiles (AWS Open Data) / Borders: dataofjapan/land (Global Map Japan) / Plates: PB2002 (Bird 2003) / Built with Claude (Opus 5.5)">データ：気象庁・P2P地震情報・USGS ／ 地形：Mapzen Terrain Tiles（AWS Open Data） ／ 県境：dataofjapan/land（地球地図日本） ／ プレート境界：PB2002（Bird 2003） ／ Built with Claude (Opus 5.5)</footer>
 
 <script type="importmap">
 { "imports": {
@@ -704,18 +747,38 @@ const PREF_TOPO = 'https://raw.githubusercontent.com/dataofjapan/land/master/jap
 const T_REF = Date.now();                                 // GPUに渡す時刻の基準（秒の相対値にする）
 const YEAR = 365.25 * 864e5;
 
+// ====== 表示言語 ======
+// ?lang=en / 設定 / ブラウザの言語 の順に決める。切り替えはページを読み直して反映する
+const LANG = (() => {
+  const q = new URLSearchParams(location.search).get('lang');
+  if (q === 'en' || q === 'ja') return q;
+  try { const v = JSON.parse(localStorage.getItem('quake3d:settings') || '{}').lang; if (v === 'en' || v === 'ja') return v; } catch {}
+  return /^ja\b/i.test(navigator.language || 'ja') ? 'ja' : 'en';
+})();
+const EN = LANG === 'en';
+const t = (ja, en) => (EN ? en : ja);
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+document.documentElement.lang = LANG;
+if (EN) {
+  document.title = 'Earthquake 3D Monitor';
+  for (const el of document.querySelectorAll('[data-en]')) el.textContent = el.dataset.en;
+  for (const el of document.querySelectorAll('[data-en-html]')) el.innerHTML = el.dataset.enHtml;
+  for (const el of document.querySelectorAll('[data-en-title]')) el.title = el.dataset.enTitle;
+  for (const el of document.querySelectorAll('[data-en-aria]')) el.setAttribute('aria-label', el.dataset.enAria);
+}
+
 // ====== 震度 ======
 const SHINDO = [
-  { label: '不明', txt: '?', color: '#5c6a80', dark: false },
-  { label: '震度1', txt: '1', color: '#a9bad6', dark: true },
-  { label: '震度2', txt: '2', color: '#3fb8ff', dark: true },
-  { label: '震度3', txt: '3', color: '#3d6cff', dark: false },
-  { label: '震度4', txt: '4', color: '#f2dc80', dark: true },
-  { label: '震度5弱', txt: '5弱', color: '#ffe014', dark: true },
-  { label: '震度5強', txt: '5強', color: '#ff9b14', dark: true },
-  { label: '震度6弱', txt: '6弱', color: '#ff401f', dark: false },
-  { label: '震度6強', txt: '6強', color: '#d0103a', dark: false },
-  { label: '震度7', txt: '7', color: '#b8008c', dark: false },
+  { label: t('不明', 'Unknown'), txt: '?', color: '#5c6a80', dark: false },
+  { label: t('震度1', 'Shindo 1'), txt: '1', color: '#a9bad6', dark: true },
+  { label: t('震度2', 'Shindo 2'), txt: '2', color: '#3fb8ff', dark: true },
+  { label: t('震度3', 'Shindo 3'), txt: '3', color: '#3d6cff', dark: false },
+  { label: t('震度4', 'Shindo 4'), txt: '4', color: '#f2dc80', dark: true },
+  { label: t('震度5弱', 'Shindo 5-'), txt: t('5弱', '5-'), color: '#ffe014', dark: true },
+  { label: t('震度5強', 'Shindo 5+'), txt: t('5強', '5+'), color: '#ff9b14', dark: true },
+  { label: t('震度6弱', 'Shindo 6-'), txt: t('6弱', '6-'), color: '#ff401f', dark: false },
+  { label: t('震度6強', 'Shindo 6+'), txt: t('6強', '6+'), color: '#d0103a', dark: false },
+  { label: t('震度7', 'Shindo 7'), txt: '7', color: '#b8008c', dark: false },
 ];
 const JMA_INT = { '1': 1, '2': 2, '3': 3, '4': 4, '5-': 5, '5+': 6, '6-': 7, '6+': 8, '7': 9 };
 const P2P_INT = { 10: 1, 20: 2, 30: 3, 40: 4, 45: 5, 46: 5, 50: 6, 55: 7, 60: 8, 70: 9 };
@@ -725,7 +788,7 @@ const shindoP2P = (n) => P2P_INT[Math.round(n)] || 0;
 function badgeHTML(s, cls = '') {
   const d = SHINDO[s] || SHINDO[0];
   if (!s) return `<div class="badge none ${cls}">－</div>`;
-  const small = d.txt.length > 1 ? ' small-txt' : '';
+  const small = !EN && d.txt.length > 1 ? ' small-txt' : '';
   return `<div class="badge${d.dark ? ' dark' : ''}${small} ${cls}" style="background:${d.color}">${d.txt}</div>`;
 }
 function miniBadge(s) {
@@ -734,6 +797,14 @@ function miniBadge(s) {
 }
 
 // ====== 都道府県（JISコード順・県庁所在地） ======
+const PREFS_EN = [
+  ['Hokkaido', 'Sapporo'], ['Aomori', 'Aomori'], ['Iwate', 'Morioka'], ['Miyagi', 'Sendai'], ['Akita', 'Akita'], ['Yamagata', 'Yamagata'], ['Fukushima', 'Fukushima'], ['Ibaraki', 'Mito'],
+  ['Tochigi', 'Utsunomiya'], ['Gunma', 'Maebashi'], ['Saitama', 'Saitama'], ['Chiba', 'Chiba'], ['Tokyo', 'Tokyo'], ['Kanagawa', 'Yokohama'], ['Niigata', 'Niigata'], ['Toyama', 'Toyama'],
+  ['Ishikawa', 'Kanazawa'], ['Fukui', 'Fukui'], ['Yamanashi', 'Kofu'], ['Nagano', 'Nagano'], ['Gifu', 'Gifu'], ['Shizuoka', 'Shizuoka'], ['Aichi', 'Nagoya'], ['Mie', 'Tsu'],
+  ['Shiga', 'Otsu'], ['Kyoto', 'Kyoto'], ['Osaka', 'Osaka'], ['Hyogo', 'Kobe'], ['Nara', 'Nara'], ['Wakayama', 'Wakayama'], ['Tottori', 'Tottori'], ['Shimane', 'Matsue'],
+  ['Okayama', 'Okayama'], ['Hiroshima', 'Hiroshima'], ['Yamaguchi', 'Yamaguchi'], ['Tokushima', 'Tokushima'], ['Kagawa', 'Takamatsu'], ['Ehime', 'Matsuyama'], ['Kochi', 'Kochi'], ['Fukuoka', 'Fukuoka'],
+  ['Saga', 'Saga'], ['Nagasaki', 'Nagasaki'], ['Kumamoto', 'Kumamoto'], ['Oita', 'Oita'], ['Miyazaki', 'Miyazaki'], ['Kagoshima', 'Kagoshima'], ['Okinawa', 'Naha'],
+];
 const PREFS = [
   ['北海道', '札幌', 43.064, 141.347], ['青森県', '青森', 40.824, 140.740], ['岩手県', '盛岡', 39.704, 141.153], ['宮城県', '仙台', 38.269, 140.872],
   ['秋田県', '秋田', 39.719, 140.102], ['山形県', '山形', 38.240, 140.364], ['福島県', '福島', 37.750, 140.468], ['茨城県', '水戸', 36.342, 140.447],
@@ -747,23 +818,26 @@ const PREFS = [
   ['香川県', '高松', 34.340, 134.043], ['愛媛県', '松山', 33.842, 132.766], ['高知県', '高知', 33.560, 133.531], ['福岡県', '福岡', 33.607, 130.418],
   ['佐賀県', '佐賀', 33.249, 130.299], ['長崎県', '長崎', 32.745, 129.874], ['熊本県', '熊本', 32.790, 130.742], ['大分県', '大分', 33.238, 131.613],
   ['宮崎県', '宮崎', 31.911, 131.424], ['鹿児島県', '鹿児島', 31.560, 130.558], ['沖縄県', '那覇', 26.212, 127.681],
-].map(([name, cap, lat, lon], i) => ({ code: i + 1, name, cap, lat, lon }));
+].map(([name, cap, lat, lon], i) => ({ code: i + 1, name, cap, lat, lon, label: EN ? PREFS_EN[i][0] : name, capLabel: EN ? PREFS_EN[i][1] : cap }));
 const PREF_BY_NAME = new Map(PREFS.map(p => [p.name, p]));
 const prefCode = (name) => PREF_BY_NAME.get(name)?.code || 0;
+// 都道府県名（日本語のデータ）を表示用の名前にする
+const prefLabel = (name) => PREF_BY_NAME.get(name)?.label || name;
 
 // ====== 地図上のラベル ======
 const CITIES = [
-  ['札幌', 43.06, 141.35], ['仙台', 38.27, 140.87], ['東京', 35.68, 139.76], ['新潟', 37.92, 139.04], ['金沢', 36.56, 136.66],
-  ['名古屋', 35.18, 136.91], ['大阪', 34.69, 135.50], ['広島', 34.39, 132.46], ['高知', 33.56, 133.53], ['福岡', 33.59, 130.40],
-  ['鹿児島', 31.60, 130.56], ['那覇', 26.21, 127.68], ['父島', 27.09, 142.19],
+  [t('札幌', 'Sapporo'), 43.06, 141.35], [t('仙台', 'Sendai'), 38.27, 140.87], [t('東京', 'Tokyo'), 35.68, 139.76], [t('新潟', 'Niigata'), 37.92, 139.04], [t('金沢', 'Kanazawa'), 36.56, 136.66],
+  [t('名古屋', 'Nagoya'), 35.18, 136.91], [t('大阪', 'Osaka'), 34.69, 135.50], [t('広島', 'Hiroshima'), 34.39, 132.46], [t('高知', 'Kochi'), 33.56, 133.53], [t('福岡', 'Fukuoka'), 33.59, 130.40],
+  [t('鹿児島', 'Kagoshima'), 31.60, 130.56], [t('那覇', 'Naha'), 26.21, 127.68], [t('父島', 'Chichijima'), 27.09, 142.19],
 ];
-const FOREIGN = [['ソウル', 37.57, 126.98], ['ウラジオストク', 43.12, 131.89], ['台北', 25.03, 121.57], ['上海', 31.23, 121.47]];
+const FOREIGN = [[t('ソウル', 'Seoul'), 37.57, 126.98], [t('ウラジオストク', 'Vladivostok'), 43.12, 131.89], [t('台北', 'Taipei'), 25.03, 121.57], [t('上海', 'Shanghai'), 31.23, 121.47]];
 const PLATES = [
-  ['太平洋プレート', 36.0, 148.2], ['フィリピン海プレート', 28.3, 136.2], ['北米プレート', 46.6, 145.0], ['ユーラシアプレート', 39.6, 132.2],
+  [t('太平洋プレート', 'Pacific Plate'), 36.0, 148.2], [t('フィリピン海プレート', 'Philippine Sea Plate'), 28.3, 136.2], [t('北米プレート', 'North American Plate'), 46.6, 145.0], [t('ユーラシアプレート', 'Eurasian Plate'), 39.6, 132.2],
 ];
+const TRENCH_NAMES = { kuril: t('千島海溝', 'Kuril Trench'), japan: t('日本海溝', 'Japan Trench'), izu: t('伊豆・小笠原海溝', 'Izu–Bonin Trench'), sagami: t('相模トラフ', 'Sagami Trough'), nankai: t('南海トラフ', 'Nankai Trough'), ryukyu: t('南西諸島海溝', 'Ryukyu Trench') };
 const TRENCH_LABELS = [
-  ['日本海溝', 38.9, 144.95], ['千島海溝', 42.35, 148.45], ['伊豆・小笠原海溝', 29.6, 143.5], ['南海トラフ', 32.05, 135.4],
-  ['相模トラフ', 34.2, 140.5], ['南西諸島海溝', 24.6, 128.9],
+  [TRENCH_NAMES.japan, 38.9, 144.95], [TRENCH_NAMES.kuril, 42.35, 148.45], [TRENCH_NAMES.izu, 29.6, 143.5], [TRENCH_NAMES.nankai, 32.05, 135.4],
+  [TRENCH_NAMES.sagami, 34.2, 140.5], [TRENCH_NAMES.ryukyu, 24.6, 128.9],
 ];
 // 海溝軸：海底地形の最深部をたどって作成
 const TRENCHES = {
@@ -780,7 +854,7 @@ const DEFAULTS = {
   depthExag: 2, landExag: 10,
   showJma: true, showUsgs: true, showStations: true, showPrefTint: true, showBorders: true, showPlates: true, showLabels: true, showWalls: true,
   autoRotate: false, sound: true, eewSound: true, notify: false, notifyMin: 3, autoFocus: true,
-  range: '5y', listMin: 1, speed: 1, me: '', meLat: null, meLon: null, secWidth: 50,
+  range: '5y', listMin: 1, speed: 1, me: '', meLat: null, meLon: null, secWidth: 50, lang: 'auto',
 };
 const S = (() => { try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('quake3d:settings') || '{}') }; } catch { return { ...DEFAULTS }; } })();
 function saveSettings() { try { localStorage.setItem('quake3d:settings', JSON.stringify(S)); } catch {} }
@@ -794,15 +868,15 @@ const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) 
 const p2 = (n) => String(n).padStart(2, '0');
 function jst(ms) { const d = new Date(ms + 9 * 3600e3); return { y: d.getUTCFullYear(), mo: d.getUTCMonth() + 1, d: d.getUTCDate(), h: d.getUTCHours(), mi: d.getUTCMinutes(), s: d.getUTCSeconds() }; }
 const fmtShort = (ms) => { const t = jst(ms); return `${t.mo}/${t.d} ${p2(t.h)}:${p2(t.mi)}`; };
-const fmtLong = (ms) => { const t = jst(ms); return `${t.y}年${t.mo}月${t.d}日 ${p2(t.h)}時${p2(t.mi)}分ごろ`; };
+const fmtLong = (ms) => { const j = jst(ms); return EN ? `${MON[j.mo - 1]} ${j.d}, ${j.y} ${p2(j.h)}:${p2(j.mi)} JST` : `${j.y}年${j.mo}月${j.d}日 ${p2(j.h)}時${p2(j.mi)}分ごろ`; };
 const fmtDate = (ms) => { const t = jst(ms); return `${t.y}/${p2(t.mo)}/${p2(t.d)}`; };
 const fmtClock = (ms) => { const t = jst(ms); return `${t.y}/${p2(t.mo)}/${p2(t.d)} ${p2(t.h)}:${p2(t.mi)}:${p2(t.s)}`; };
 function fmtAgo(ms) {
   const s = (Date.now() - ms) / 1000;
-  if (s < 60) return 'たった今';
-  if (s < 3600) return `${Math.floor(s / 60)}分前`;
-  if (s < 86400) return `${Math.floor(s / 3600)}時間前`;
-  return `${Math.floor(s / 86400)}日前`;
+  if (s < 60) return t('たった今', 'just now');
+  if (s < 3600) return t(`${Math.floor(s / 60)}分前`, `${Math.floor(s / 60)} min ago`);
+  if (s < 86400) return t(`${Math.floor(s / 3600)}時間前`, `${Math.floor(s / 3600)} h ago`);
+  return t(`${Math.floor(s / 86400)}日前`, `${Math.floor(s / 86400)} d ago`);
 }
 // "2026/09/26 21:07:00" のような日本時間の文字列
 function parseJST(s) {
@@ -819,8 +893,8 @@ function parseCod(cod) {
   return { lat: +m[1], lon: +m[2], depth: m[3] != null ? Math.abs(+m[3]) / 1000 : null };
 }
 const inRegion = (lat, lon) => lat >= REGION.latMin && lat <= REGION.latMax && lon >= REGION.lonMin && lon <= REGION.lonMax;
-const fmtDepth = (d) => (d == null ? '不明' : d === 0 ? 'ごく浅い' : `${Math.round(d)}km`);
-const fmtMag = (m) => (m == null ? 'M不明' : `M${m.toFixed(1)}`);
+const fmtDepth = (d) => (d == null ? t('不明', 'unknown') : d === 0 ? t('ごく浅い', 'very shallow') : `${Math.round(d)}km`);
+const fmtMag = (m) => (m == null ? t('M不明', 'M?') : `M${m.toFixed(1)}`);
 function kmBetween(lat1, lon1, lat2, lon2) {
   const a = Math.sin((lat2 - lat1) * DEG / 2) ** 2 + Math.cos(lat1 * DEG) * Math.cos(lat2 * DEG) * Math.sin((lon2 - lon1) * DEG / 2) ** 2;
   return 2 * R_EARTH * Math.asin(Math.min(1, Math.sqrt(a)));
@@ -886,7 +960,7 @@ try {
   renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
 } catch (e) {
   $('ld-err').classList.remove('hidden');
-  $('ld-err').textContent = 'このブラウザでは3D表示（WebGL2）が使えません。別のブラウザでお試しください。';
+  $('ld-err').textContent = t('このブラウザでは3D表示（WebGL2）が使えません。別のブラウザでお試しください。', 'This browser does not support WebGL2, which is needed for the 3D view. Please try another browser.');
   throw e;
 }
 const PR = Math.min(devicePixelRatio || 1, IS_MOBILE ? 1.5 : 2);
@@ -1862,9 +1936,15 @@ const Store = {
 const State = { selected: null, hover: null, lastInteract: 0, replay: null, eew: null };
 
 // ---- 気象庁 list.json ----
+// 英語表示用：P2P地震情報の震央地名は日本語だけなので、気象庁の一覧に出てきた英語名で置き換える
+const JA2EN = new Map();
+const llText = (lat, lon) => `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? 'N' : 'S'} ${Math.abs(lon).toFixed(1)}°${lon >= 0 ? 'E' : 'W'}`;
+const enPlace = (ja, lat, lon) => (!/[\u3040-\u30ff\u3400-\u9fff]/.test(ja) ? ja : JA2EN.get(ja) || (lat != null && lon != null ? llText(lat, lon) : ja));
+const cleanEn = (s) => (s ? String(s).replace(/\s+/g, ' ').trim() : '');
 function ingestJmaList(list) {
   const byEid = new Map();
   for (const r of list) {
+    if (r?.anm && r.en_anm) JA2EN.set(r.anm, cleanEn(r.en_anm));
     if (!r || !r.eid || !/震度|震源|遠地/.test(r.ttl || '')) continue;
     if (!byEid.has(r.eid)) byEid.set(r.eid, []);
     byEid.get(r.eid).push(r);
@@ -1885,11 +1965,12 @@ function ingestJmaList(list) {
     const ev = {
       id: 'jma:' + eid, eid, src: 'jma',
       time: Date.parse((hy || last).at) || Date.parse(last.rdt) || Date.now(),
-      name: (hy || last).anm || '震源を調査中',
+      name: (EN ? cleanEn((hy || last).en_anm) : null) || (hy || last).anm || t('震源を調査中', 'Epicenter under investigation'),
+      nameJa: (hy || last).anm || '',
       lat: cod?.lat ?? null, lon: cod?.lon ?? null, depth: cod?.depth ?? null,
       mag: /^\d+(\.\d+)?$/.test(magStr) ? +magStr : null,
       maxi, prefs, foreign: reps.some((r) => r.ttl === '遠地地震に関する情報'),
-      detailFile: detail?.json || null, reportTitle: last.ttl,
+      detailFile: detail?.json || null, reportTitle: (EN && last.en_ttl) || last.ttl,
     };
     ev.hasHypo = ev.lat != null && ev.lon != null;
     ev.inRegion = ev.hasHypo && inRegion(ev.lat, ev.lon);
@@ -1906,6 +1987,8 @@ function ingestJmaList(list) {
       fresh.push(ev);
     }
   }
+  // 先にP2P地震情報から入った地震の名前も、英語名がわかれば置き換える
+  if (EN) for (const e of Store.events.values()) if (e.src === 'p2p' && JA2EN.has(e.nameJa)) e.name = JA2EN.get(e.nameJa);
   return fresh;
 }
 function sameQuake(a, b) {
@@ -1929,18 +2012,23 @@ async function loadStations(ev) {
   for (const p of obs?.Pref || []) for (const a of p.Area || []) for (const c of a.City || []) for (const s of c.IntensityStation || []) {
     const k = shindoJma(s.Int);
     if (!k || !s.latlon) continue;
-    st.push({ name: String(s.Name || '').replace(/[＊*]$/, ''), pref: p.Name, s: k, lat: +s.latlon.lat, lon: +s.latlon.lon });
+    st.push({ name: String((EN && s.enName) || s.Name || '').replace(/[＊*]$/, ''), pref: (EN && p.enName) || p.Name, s: k, lat: +s.latlon.lat, lon: +s.latlon.lon });
   }
   for (const p of obs?.Pref || []) { const k = shindoJma(p.MaxInt); if (k) ev.prefs.set(+p.Code, k); }
-  ev.comment = d?.Body?.Comments?.ForecastComment?.Text || ev.comment;
+  const fc = d?.Body?.Comments?.ForecastComment;
+  ev.comment = ((EN ? fc?.enText : fc?.Text) || '').trim() || ev.comment;
   st.sort((a, b) => b.s - a.s);
   ev.stations = st;
   return st;
 }
 
 // ---- P2P地震情報 ----
-const P2P_TYPE = { ScalePrompt: '震度速報', Destination: '震源に関する情報', ScaleAndDestination: '震度・震源に関する情報', DetailScale: '各地の震度に関する情報', Foreign: '遠地地震に関する情報', Other: '地震情報' };
-const TSUNAMI_TXT = { None: 'この地震による津波の心配はありません。', Unknown: '津波の有無は不明です。', Checking: '津波の有無を調査中です。', NonEffective: '若干の海面変動が予想されますが、被害の心配はありません。', Watch: '津波注意報を発表中です。', Warning: '津波警報等を発表中です。' };
+const P2P_TYPE = EN
+  ? { ScalePrompt: 'Seismic Intensity Information', Destination: 'Hypocenter Information', ScaleAndDestination: 'Hypocenter and Intensity Information', DetailScale: 'Intensity Information by Location', Foreign: 'Distant Earthquake Information', Other: 'Earthquake Information' }
+  : { ScalePrompt: '震度速報', Destination: '震源に関する情報', ScaleAndDestination: '震度・震源に関する情報', DetailScale: '各地の震度に関する情報', Foreign: '遠地地震に関する情報', Other: '地震情報' };
+const TSUNAMI_TXT = EN
+  ? { None: 'This earthquake poses no tsunami risk.', Unknown: 'Whether a tsunami occurred is unknown.', Checking: 'A possible tsunami is being investigated.', NonEffective: 'Slight sea-level changes may occur, but no damage is expected.', Watch: 'A tsunami advisory is in effect.', Warning: 'Tsunami warnings are in effect.' }
+  : { None: 'この地震による津波の心配はありません。', Unknown: '津波の有無は不明です。', Checking: '津波の有無を調査中です。', NonEffective: '若干の海面変動が予想されますが、被害の心配はありません。', Watch: '津波注意報を発表中です。', Warning: '津波警報等を発表中です。' };
 function eventFromP2P(m) {
   const q = m.earthquake || {}, h = q.hypocenter || {};
   const time = parseJST(q.time);
@@ -1950,12 +2038,13 @@ function eventFromP2P(m) {
   for (const p of m.points || []) { const c = prefCode(p.pref), s = shindoP2P(p.scale); if (c && s) prefs.set(c, Math.max(prefs.get(c) || 0, s)); }
   const ev = {
     id: 'p2p:' + (m.id || m._id || time + ':' + (h.name || '')), src: 'p2p', time,
-    name: h.name || '震源を調査中',
+    name: (EN && h.name ? enPlace(h.name, hasHypo ? +h.latitude : null, hasHypo ? +h.longitude : null) : h.name) || t('震源を調査中', 'Epicenter under investigation'),
+    nameJa: h.name || '',
     lat: hasHypo ? +h.latitude : null, lon: hasHypo ? +h.longitude : null,
     depth: h.depth >= 0 ? +h.depth : null, mag: h.magnitude > 0 ? +h.magnitude : null,
     maxi: shindoP2P(q.maxScale), prefs, foreign: m.issue?.type === 'Foreign',
     tsunami: q.domesticTsunami, points: m.points || [], hasHypo,
-    reportTitle: P2P_TYPE[m.issue?.type] || '地震情報',
+    reportTitle: P2P_TYPE[m.issue?.type] || P2P_TYPE.Other,
   };
   ev.inRegion = hasHypo && inRegion(ev.lat, ev.lon);
   return ev;
@@ -1964,10 +2053,10 @@ function ingestP2P(m) {
   const ev = eventFromP2P(m);
   if (!ev) return null;
   for (const e of Store.events.values()) {
-    if (!sameQuake(e, ev) || (e.hasHypo && ev.hasHypo && e.name !== ev.name && kmBetween(e.lat, e.lon, ev.lat, ev.lon) > 30)) continue;
+    if (!sameQuake(e, ev) || (e.hasHypo && ev.hasHypo && (e.nameJa ?? e.name) !== (ev.nameJa ?? ev.name) && kmBetween(e.lat, e.lon, ev.lat, ev.lon) > 30)) continue;
     const before = e.maxi, hadHypo = e.hasHypo;
     if (e.src === 'p2p') {
-      if (ev.hasHypo) Object.assign(e, { lat: ev.lat, lon: ev.lon, depth: ev.depth, hasHypo: true, inRegion: ev.inRegion, name: ev.name });
+      if (ev.hasHypo) Object.assign(e, { lat: ev.lat, lon: ev.lon, depth: ev.depth, hasHypo: true, inRegion: ev.inRegion, name: ev.name, nameJa: ev.nameJa });
       if (ev.mag != null) e.mag = ev.mag;
       e.reportTitle = ev.reportTitle;
     }
@@ -2031,7 +2120,7 @@ async function loadUsgs(kind, onChunk) {
     } catch (e) { failed++; }
   }));
   Store.usgsLoaded[kind] = failed === chunks.length ? false : true;
-  if (failed) toast(`過去の震源データの一部を取得できませんでした（${failed}/${chunks.length}）`, 'warn');
+  if (failed) toast(t(`過去の震源データの一部を取得できませんでした（${failed}/${chunks.length}）`, `Some past hypocenter data could not be loaded (${failed}/${chunks.length})`), 'warn');
 }
 
 // ---- 県境（topojson） ----
@@ -2265,7 +2354,7 @@ async function selectEvent(ev, { fly: doFly = true, replay = true } = {}) {
   setStations(ev, []);
   let st = [];
   if (ev.detailFile) {
-    try { st = (await loadStations(ev)) || []; } catch (e) { toast('観測点のデータを取得できませんでした', 'warn'); }
+    try { st = (await loadStations(ev)) || []; } catch (e) { toast(t('観測点のデータを取得できませんでした', 'Could not load the intensity stations'), 'warn'); }
     if (State.selected !== ev) return;
     setPrefTint(ev.prefs);
     renderDetail(ev);
@@ -2295,10 +2384,10 @@ function stopReplay() {
 function updateReplay(now) {
   const r = State.replay;
   if (!r) return;
-  const t = (now - r.start) / 1000 * r.speed;
-  stationU.uReplayT.value = t;
-  $('rh-time').textContent = `+${t.toFixed(1)}秒 (×${r.speed.toFixed(0)})`;
-  if (t > r.total) { State.replay = null; $('replay-hud').classList.add('hidden'); stationU.uReplayT.value = 1e9; }
+  const tt = (now - r.start) / 1000 * r.speed;
+  stationU.uReplayT.value = tt;
+  $('rh-time').textContent = t(`+${tt.toFixed(1)}秒 (×${r.speed.toFixed(0)})`, `+${tt.toFixed(1)} s (×${r.speed.toFixed(0)})`);
+  if (tt > r.total) { State.replay = null; $('replay-hud').classList.add('hidden'); stationU.uReplayT.value = 1e9; }
 }
 
 // ====== 一覧・詳細 ======
@@ -2315,16 +2404,16 @@ function renderList() {
   const el = $('quake-list');
   const mp = myPrefCode();
   const rows = Store.list.filter((e) => (e.maxi || 0) >= S.listMin || (S.listMin <= 1 && !e.maxi));
-  $('list-count').textContent = `${rows.length}件`;
+  $('list-count').textContent = t(`${rows.length}件`, `${rows.length}`);
   document.querySelectorAll('#list-filter .chip').forEach((b) => b.classList.toggle('on', +b.dataset.min === S.listMin));
-  if (!rows.length) { el.innerHTML = `<div class="q-empty">${Store.list.length ? '条件に合う地震はありません' : Store.loadFailed ? '地震情報を取得できませんでした。<br>しばらくすると自動で再取得します。' : '地震情報を取得しています…'}</div>`; return; }
+  if (!rows.length) { el.innerHTML = `<div class="q-empty">${Store.list.length ? t('条件に合う地震はありません', 'No earthquakes match this filter') : Store.loadFailed ? t('地震情報を取得できませんでした。<br>しばらくすると自動で再取得します。', 'Could not load earthquake information.<br>It will retry automatically.') : t('地震情報を取得しています…', 'Loading earthquakes…')}</div>`; return; }
   el.innerHTML = rows.slice(0, 300).map((e) => {
     const meta = e.hasHypo ? `${fmtShort(e.time)} · ${fmtMag(e.mag)} · ${fmtDepth(e.depth)}` : `${fmtShort(e.time)} · ${esc(e.reportTitle || '')}`;
     const mine = mp ? e.prefs?.get(mp) : 0;
-    const mineTag = mine ? `<div class="q-mine">自分の地域（${esc(PREFS[mp - 1].name)}）：${SHINDO[mine].label}</div>` : '';
+    const mineTag = mine ? `<div class="q-mine">${t(`自分の地域（${esc(PREFS[mp - 1].label)}）：${SHINDO[mine].label}`, `Your area (${esc(PREFS[mp - 1].label)}): ${SHINDO[mine].label}`)}</div>` : '';
     return `<button class="q-item${e === State.selected ? ' sel' : ''}${e.isNew ? ' fresh' : ''}${mine ? ' mine' : ''}" data-id="${esc(e.id)}">
       ${badgeHTML(e.maxi)}
-      <div style="min-width:0"><div class="q-name">${esc(eventTitle(e))}${e.foreign || (e.hasHypo && !e.inRegion) ? ' <small style="color:var(--dim);font-weight:400">（範囲外）</small>' : ''}</div><div class="q-meta num">${meta}</div>${mineTag}</div>
+      <div style="min-width:0"><div class="q-name">${esc(eventTitle(e))}${e.foreign || (e.hasHypo && !e.inRegion) ? ` <small style="color:var(--dim);font-weight:400">${t('（範囲外）', '(outside the map)')}</small>` : ''}</div><div class="q-meta num">${meta}</div>${mineTag}</div>
       <div class="q-ago">${fmtAgo(e.time)}</div></button>`;
   }).join('');
 }
@@ -2332,7 +2421,7 @@ function renderLatestChip(ev) {
   const el = $('latest-chip');
   if (!ev) { el.classList.add('hidden'); return; }
   el.classList.remove('hidden');
-  el.innerHTML = `${badgeHTML(ev.maxi, '')}<div style="min-width:0"><div class="lc-tag">最新の地震</div><div class="lc-text">${esc(ev.name)} <span class="lc-meta num">${fmtShort(ev.time)} · ${fmtMag(ev.mag)}</span></div></div>`;
+  el.innerHTML = `${badgeHTML(ev.maxi, '')}<div style="min-width:0"><div class="lc-tag">${t('最新の地震', 'LATEST')}</div><div class="lc-text">${esc(ev.name)} <span class="lc-meta num">${fmtShort(ev.time)} · ${fmtMag(ev.mag)}</span></div></div>`;
   el.querySelector('.badge').style.cssText += ';width:32px;height:32px;font-size:14px;border-radius:8px';
   el.onclick = () => selectEvent(ev);
 }
@@ -2343,24 +2432,24 @@ function renderDetail(ev) {
   const prefs = [...(ev.prefs || new Map())].sort((a, b) => b[1] - a[1]);
   const st = ev.stations || [];
   const tsu = ev.comment || (ev.tsunami ? TSUNAMI_TXT[ev.tsunami] : '');
-  const warn = /警報|注意報/.test(tsu || '') && !/心配はありません/.test(tsu || '');
-  const coord = ev.hasHypo ? `${ev.lat.toFixed(1)}°N ${ev.lon.toFixed(1)}°E` : '調査中';
+  const warn = /警報|注意報|[Ww]arning|[Aa]dvisory/.test(tsu || '') && !/心配はありません|no tsunami risk|no damage/.test(tsu || '');
+  const coord = ev.hasHypo ? `${ev.lat.toFixed(1)}°N ${ev.lon.toFixed(1)}°E` : t('調査中', 'under investigation');
   $('detail-body').innerHTML = `
-    <div class="d-head">${badgeHTML(ev.maxi, 'big')}<div><div class="d-kind">${ev.maxi ? '最大' + SHINDO[ev.maxi].label : esc(ev.reportTitle || '地震情報')}</div><div class="d-name">${esc(eventTitle(ev))}</div><div class="d-time num">${fmtLong(ev.time)}</div></div>
-      <button class="icon-btn" id="d-close" aria-label="閉じる"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="d-head">${badgeHTML(ev.maxi, 'big')}<div><div class="d-kind">${ev.maxi ? t('最大', 'Max. ') + SHINDO[ev.maxi].label : esc(ev.reportTitle || P2P_TYPE.Other)}</div><div class="d-name">${esc(eventTitle(ev))}</div><div class="d-time num">${fmtLong(ev.time)}</div></div>
+      <button class="icon-btn" id="d-close" aria-label="${t('閉じる', 'Close')}"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="d-grid">
-      <div class="d-cell"><label><span class="lf">マグニチュード</span><span class="ls">規模</span></label><b class="num">${ev.mag != null ? 'M' + ev.mag.toFixed(1) : '不明'}</b></div>
-      <div class="d-cell"><label>深さ</label><b class="num">${ev.depth == null ? '不明' : ev.depth === 0 ? 'ごく浅い' : Math.round(ev.depth) + '<small>km</small>'}</b></div>
-      <div class="d-cell"><label>震源</label><b class="num" style="font-size:13px">${coord}</b></div>
-      <div class="d-cell"><label>震度観測点</label><b class="num">${ev.detailFile ? (ev.stations ? st.length + '<small>地点</small>' : '…') : '－'}</b></div>
+      <div class="d-cell"><label><span class="lf">${t('マグニチュード', 'Magnitude')}</span><span class="ls">${t('規模', 'Mag.')}</span></label><b class="num">${ev.mag != null ? 'M' + ev.mag.toFixed(1) : t('不明', 'unknown')}</b></div>
+      <div class="d-cell"><label>${t('深さ', 'Depth')}</label><b class="num">${ev.depth == null ? t('不明', 'unknown') : ev.depth === 0 ? t('ごく浅い', 'very shallow') : Math.round(ev.depth) + '<small>km</small>'}</b></div>
+      <div class="d-cell"><label>${t('震源', 'Epicenter')}</label><b class="num" style="font-size:13px">${coord}</b></div>
+      <div class="d-cell"><label>${t('震度観測点', 'Stations')}</label><b class="num">${ev.detailFile ? (ev.stations ? st.length + t('<small>地点</small>', '') : '…') : '－'}</b></div>
     </div>
     ${tsu ? `<div class="d-note${warn ? ' warn' : ''}">${esc(tsu)}</div>` : ''}
-    ${ev.foreign || (ev.hasHypo && !ev.inRegion) ? '<div class="d-note">震源が3D表示の範囲外のため、地図上には表示していません。</div>' : ''}
-    ${prefs.length ? `<div class="d-sec"><h4>都道府県ごとの最大震度</h4><div class="pref-chips">${prefs.slice(0, 16).map(([c, s]) => `<span class="pref-chip">${miniBadge(s)}${esc(PREFS[c - 1]?.name || c)}</span>`).join('')}</div></div>` : ''}
-    ${st.length ? `<div class="d-sec"><h4>震度の大きかった地点</h4><div class="st-list">${st.slice(0, 8).map((s) => `<div class="st-row">${miniBadge(s.s)}<span>${esc(s.name)}<small>${esc(s.pref)}</small></span></div>`).join('')}</div></div>` : ''}
+    ${ev.foreign || (ev.hasHypo && !ev.inRegion) ? `<div class="d-note">${t('震源が3D表示の範囲外のため、地図上には表示していません。', 'The epicenter is outside the 3D map, so it is not shown.')}</div>` : ''}
+    ${prefs.length ? `<div class="d-sec"><h4>${t('都道府県ごとの最大震度', 'Max. Shindo by prefecture')}</h4><div class="pref-chips">${prefs.slice(0, 16).map(([c, s]) => `<span class="pref-chip">${miniBadge(s)}${esc(PREFS[c - 1]?.label || c)}</span>`).join('')}</div></div>` : ''}
+    ${st.length ? `<div class="d-sec"><h4>${t('震度の大きかった地点', 'Strongest shaking')}</h4><div class="st-list">${st.slice(0, 8).map((s) => `<div class="st-row">${miniBadge(s.s)}<span>${esc(s.name)}<small>${esc(s.pref)}</small></span></div>`).join('')}</div></div>` : ''}
     <div class="d-actions">
-      <button class="btn primary grow" id="d-replay" ${ev.hasHypo && ev.inRegion ? '' : 'disabled'}><svg class="ic" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;width:14px;height:14px"><path d="M8 5.5v13l10.5-6.5z"/></svg>揺れの広がりを再生</button>
-      <button class="btn" id="d-zoom" ${ev.hasHypo && ev.inRegion ? '' : 'disabled'}>震源へ</button>
+      <button class="btn primary grow" id="d-replay" ${ev.hasHypo && ev.inRegion ? '' : 'disabled'}><svg class="ic" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;width:14px;height:14px"><path d="M8 5.5v13l10.5-6.5z"/></svg>${t('揺れの広がりを再生', 'Replay the shaking')}</button>
+      <button class="btn" id="d-zoom" ${ev.hasHypo && ev.inRegion ? '' : 'disabled'}>${t('震源へ', 'Go to epicenter')}</button>
     </div>`;
   $('d-close').onclick = () => selectEvent(null);
   $('d-replay').onclick = () => { flyToEvent(ev); setTimeout(() => startReplay(ev), 700); };
@@ -2368,7 +2457,9 @@ function renderDetail(ev) {
 }
 
 // ====== タイムライン ======
-const RANGES = [['1d', '24時間', 864e5, '1日'], ['7d', '7日', 7 * 864e5], ['30d', '30日', 30 * 864e5], ['1y', '1年', YEAR], ['5y', '5年', 5 * YEAR], ['20y', '20年', 20 * YEAR]];
+const RANGES = EN
+  ? [['1d', '24h', 864e5], ['7d', '7d', 7 * 864e5], ['30d', '30d', 30 * 864e5], ['1y', '1y', YEAR], ['5y', '5y', 5 * YEAR], ['20y', '20y', 20 * YEAR]]
+  : [['1d', '24時間', 864e5, '1日'], ['7d', '7日', 7 * 864e5], ['30d', '30日', 30 * 864e5], ['1y', '1年', YEAR], ['5y', '5年', 5 * YEAR], ['20y', '20年', 20 * YEAR]];
 const Timeline = {
   live: true, playing: false, T: Date.now(), dragging: false, lastDraw: 0,
   range() { return RANGES.find((r) => r[0] === S.range) || RANGES[4]; },
@@ -2379,7 +2470,7 @@ const Timeline = {
   },
   init() {
     const box = $('tl-ranges');
-    box.innerHTML = RANGES.map(([k, l, , s]) => `<button data-range="${k}" title="過去${l}を表示">${s ? `<span class="rl">${l}</span><span class="rs">${s}</span>` : l}</button>`).join('');
+    box.innerHTML = RANGES.map(([k, l, , s]) => `<button data-range="${k}" title="${t(`過去${l}を表示`, `Show the last ${l}`)}">${s ? `<span class="rl">${l}</span><span class="rs">${s}</span>` : l}</button>`).join('');
     box.onclick = (e) => { const b = e.target.closest('[data-range]'); if (b) this.setRange(b.dataset.range); };
     $('tl-play').onclick = () => this.toggle();
     $('tl-live').onclick = () => this.goLive();
@@ -2426,8 +2517,8 @@ const Timeline = {
     document.querySelectorAll('#tl-ranges [data-range]').forEach((b) => b.classList.toggle('on', b.dataset.range === S.range));
     $('tl-play-ic').innerHTML = this.playing ? '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>' : '<path d="M8 5.5v13l10.5-6.5z"/>';
     $('tl-live').classList.toggle('on', this.live && !Archive.active);
-    $('tl-live').textContent = Archive.active ? '終了' : 'LIVE';
-    $('tl-live').title = Archive.active ? '過去の大地震の表示を終えて、現在に戻る' : '現在時刻の表示に戻る';
+    $('tl-live').textContent = Archive.active ? t('終了', 'EXIT') : 'LIVE';
+    $('tl-live').title = Archive.active ? t('過去の大地震の表示を終えて、現在に戻る', 'Leave the historic earthquake and return to now') : t('現在時刻の表示に戻る', 'Return to the current time');
     $('tl-speed').textContent = '×' + S.speed;
     this.draw();
   },
@@ -2520,20 +2611,21 @@ const Timeline = {
     if (arch) {
       const nA = Archive.events.filter((e) => e.time >= a && e.time <= this.T).length;
       const days = (this.T - arch.main.t) / 864e5;
-      const rel = Math.abs(days) < 1 ? `本震の${days < 0 ? Math.round(-days * 24) + '時間前' : Math.round(days * 24) + '時間後'}` : `本震の${Math.round(Math.abs(days))}日${days < 0 ? '前' : '後'}`;
-      info.innerHTML = `<b>${fmtClock(this.T).slice(0, 16)}</b>　${esc(arch.name)}（${rel}）・ 表示中 ${nA.toLocaleString()} 個`;
+      const hrs = Math.round(Math.abs(days) * 24), dys = Math.round(Math.abs(days));
+      const rel = Math.abs(days) < 1 ? t(`本震の${hrs}時間${days < 0 ? '前' : '後'}`, `${hrs} h ${days < 0 ? 'before' : 'after'} the mainshock`) : t(`本震の${dys}日${days < 0 ? '前' : '後'}`, `${dys} d ${days < 0 ? 'before' : 'after'} the mainshock`);
+      info.innerHTML = `<b>${fmtClock(this.T).slice(0, 16)}</b>${t('　', ' ')}${esc(arch.name)}${t(`（${rel}）・ 表示中 ${nA.toLocaleString()} 個`, ` (${rel}) · showing ${nA.toLocaleString()}`)}`;
       return;
     }
     const nU = Store.usgs.filter((e) => e.time >= a && e.time <= this.T).length;
     const nJ = Store.list.filter((e) => e.time >= a && e.time <= this.T && e.hasHypo).length;
-    info.innerHTML = `<b>${this.live ? '現在' : fmtClock(this.T).slice(0, 16)}</b>　表示中：過去の震源 ${nU.toLocaleString()} ・ 最近の地震 ${nJ}`;
+    info.innerHTML = `<b>${this.live ? t('現在', 'Now') : fmtClock(this.T).slice(0, 16)}</b>${t('　', ' ')}${t(`表示中：過去の震源 ${nU.toLocaleString()} ・ 最近の地震 ${nJ}`, `Showing: ${nU.toLocaleString()} past hypocenters · ${nJ} recent quakes`)}`;
   },
 };
 function tickHours(a, b, step) { const out = []; const s = Math.ceil((a + 9 * 3600e3) / (step * 3600e3)) * step * 3600e3 - 9 * 3600e3; for (let t = s; t <= b; t += step * 3600e3) { const j = jst(t); out.push([t, `${p2(j.h)}:00`]); } return out; }
 function tickDays(a, b, step) { const out = []; const day = 864e5; let t = Math.ceil((a + 9 * 3600e3) / day) * day - 9 * 3600e3; for (; t <= b; t += day) { const j = jst(t); if ((j.d - 1) % step === 0 || step === 1) out.push([t, `${j.mo}/${j.d}`]); } return out; }
 function tickYears(a, b, monthly) {
   const out = []; const ja = jst(a);
-  if (monthly) { for (let y = ja.y, m = ja.mo + 1; ; m++) { if (m > 12) { m = 1; y++; } const t = Date.UTC(y, m - 1, 1) - 9 * 3600e3; if (t > b) break; if ((m - 1) % 2 === 0) out.push([t, m === 1 ? `${y}` : `${m}月`]); } }
+  if (monthly) { for (let y = ja.y, m = ja.mo + 1; ; m++) { if (m > 12) { m = 1; y++; } const t = Date.UTC(y, m - 1, 1) - 9 * 3600e3; if (t > b) break; if ((m - 1) % 2 === 0) out.push([t, m === 1 ? `${y}` : EN ? MON[m - 1] : `${m}月`]); } }
   else { const span = (b - a) / YEAR; const step = span > 10 ? 2 : 1; for (let y = ja.y + 1; ; y++) { const t = Date.UTC(y, 0, 1) - 9 * 3600e3; if (t > b) break; if (y % step === 0) out.push([t, `${y}`]); } }
   return out;
 }
@@ -2541,13 +2633,13 @@ function tickYears(a, b, monthly) {
 // ====== 断面 ======
 // 断面の例（Aを左、Bを右に見る。どれも海溝が右側に来る向き）
 const SECTION_PRESETS = [
-  ['東北地方を東西に', [39.3, 137.0], [39.3, 145.3]],
-  ['東北から日本海へ（深発地震まで）', [43.4, 130.8], [38.4, 145.0]],
-  ['関東を北西から南東へ', [37.4, 137.6], [34.2, 142.6]],
-  ['西南日本を北西から南東へ', [36.4, 131.8], [31.6, 135.8], 120],
-  ['九州を東西に', [32.6, 128.4], [32.6, 133.4]],
-  ['北海道を北西から南東へ', [45.2, 140.0], [41.0, 146.4]],
-  ['伊豆・小笠原を東西に', [29.5, 137.0], [29.5, 145.5]],
+  [t('東北地方を東西に', 'Tohoku, west to east'), [39.3, 137.0], [39.3, 145.3]],
+  [t('東北から日本海へ（深発地震まで）', 'Tohoku to the Sea of Japan (deep quakes)'), [43.4, 130.8], [38.4, 145.0]],
+  [t('関東を北西から南東へ', 'Kanto, northwest to southeast'), [37.4, 137.6], [34.2, 142.6]],
+  [t('西南日本を北西から南東へ', 'Southwest Japan, northwest to southeast'), [36.4, 131.8], [31.6, 135.8], 120],
+  [t('九州を東西に', 'Kyushu, west to east'), [32.6, 128.4], [32.6, 133.4]],
+  [t('北海道を北西から南東へ', 'Hokkaido, northwest to southeast'), [45.2, 140.0], [41.0, 146.4]],
+  [t('伊豆・小笠原を東西に', 'Izu–Bonin, west to east'), [29.5, 137.0], [29.5, 145.5]],
 ];
 const ENU_T = ENU.clone().transpose();
 const _sv = new THREE.Vector3();
@@ -2599,7 +2691,7 @@ const Section = {
   labels: [], pts: [], drawKey: '', lastT: 0,
   init() {
     const sel = $('sp-preset');
-    sel.innerHTML = '<option value="">断面の例…</option>' + SECTION_PRESETS.map(([n], i) => `<option value="${i}">${esc(n)}</option>`).join('');
+    sel.innerHTML = `<option value="">${t('断面の例…', 'Examples…')}</option>` + SECTION_PRESETS.map(([n], i) => `<option value="${i}">${esc(n)}</option>`).join('');
     sel.onchange = () => {
       const p = SECTION_PRESETS[+sel.value];
       if (p) {
@@ -2620,6 +2712,7 @@ const Section = {
     const w = $('sp-width');
     w.value = S.secWidth;
     $('sp-wv').textContent = `±${S.secWidth}km`;
+    $('sp-name').textContent = '';
     w.oninput = () => { S.secWidth = +w.value; $('sp-wv').textContent = `±${S.secWidth}km`; saveSettings(); this.apply(false); };
     const cv = $('sp-canvas');
     cv.addEventListener('pointermove', (e) => this.hover(e));
@@ -2637,7 +2730,7 @@ const Section = {
     document.body.classList.add('picking');
     $('btn-section').classList.add('on');
     $('pick-hint').classList.remove('hidden');
-    $('pick-text').innerHTML = '地図上で断面の<b>始点</b>をクリックしてください';
+    $('pick-text').innerHTML = t('地図上で断面の<b>始点</b>をクリックしてください', 'Click the <b>start point</b> of the section on the map');
     secPreview.visible = false;
   },
   cancelPick() {
@@ -2652,11 +2745,11 @@ const Section = {
     ll = clampToRegion(ll);
     if (!this.a) {
       this.a = ll;
-      $('pick-text').innerHTML = '次に<b>終点</b>をクリックしてください（始点は断面図の左側になります）';
+      $('pick-text').innerHTML = t('次に<b>終点</b>をクリックしてください（始点は断面図の左側になります）', 'Now click the <b>end point</b> (the start point will be on the left of the section)');
       this.labels[0].userData.lat = ll.lat; this.labels[0].userData.lon = ll.lon; placeLabel(this.labels[0]); this.labels[0].visible = true;
       return;
     }
-    if (kmBetween(this.a.lat, this.a.lon, ll.lat, ll.lon) < 60) { toast('始点と終点をもう少し離してください', 'warn'); return; }
+    if (kmBetween(this.a.lat, this.a.lon, ll.lat, ll.lon) < 60) { toast(t('始点と終点をもう少し離してください', 'Please place the two points farther apart'), 'warn'); return; }
     const a = this.a;
     this.cancelPick();
     this.set(a, ll, '');
@@ -2683,7 +2776,7 @@ const Section = {
     document.body.classList.add('sec-open');
     $('section-panel').classList.remove('hidden');
     $('btn-section').classList.add('on');
-    $('sp-name').textContent = this.name ? `：${this.name}` : '';
+    $('sp-name').textContent = this.name ? t(`：${this.name}`, `· ${this.name}`) : '';
     if (this.picking) this.cancelPick();
     measureViewOffset();
     this.apply(true);
@@ -2856,7 +2949,7 @@ const Section = {
     g.fillStyle = 'rgba(160,178,205,0.8)';
     g.textAlign = 'right';
     for (let d = 0; d <= D; d += 100) { const y = Math.round(Y(d)) + 0.5; g.beginPath(); g.moveTo(ml, y); g.lineTo(ml + pw, y); g.stroke(); g.fillText(`${d}`, ml - 5, y); }
-    g.save(); g.translate(10, topo + ph / 2); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.fillText('深さ km', 0, 0); g.restore();
+    g.save(); g.translate(10, topo + ph / 2); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.fillText(t('深さ km', 'Depth km'), 0, 0); g.restore();
     const step = L > 1500 ? 200 : L > 600 ? 100 : 50;
     g.textAlign = 'center'; g.textBaseline = 'top';
     for (let s = 0; s <= L; s += step) { const x = Math.round(X(s)) + 0.5; g.beginPath(); g.moveTo(x, topo); g.lineTo(x, topo + ph); g.stroke(); if (x > ml + 12 && x < ml + pw - 30) g.fillText(`${s}`, x, topo + ph + 3); }
@@ -2882,7 +2975,8 @@ const Section = {
     for (const [s, name] of this.trenchCrossings()) {
       const x = X(s);
       g.beginPath(); g.moveTo(x, base + 11); g.lineTo(x - 4, base + 4); g.lineTo(x + 4, base + 4); g.closePath(); g.fill();
-      if (name) g.fillText(name, clamp(x, ml + 36, ml + pw - 36), 12);
+      // 端の A・B と重ならないよう、文字の幅に合わせて内側に寄せる
+      if (name) { const hw = g.measureText(name).width / 2 + 14; g.fillText(name, clamp(x, ml + hw, ml + pw - hw), 12); }
     }
     g.fillStyle = '#7fe0ff'; g.font = 'bold 11px system-ui, sans-serif'; g.textBaseline = 'middle';
     g.textAlign = 'left'; g.fillText('A', ml + 2, 7);
@@ -2915,11 +3009,12 @@ const Section = {
     g.restore();
     g.globalAlpha = 1;
     const ratio = sy / sx;
-    $('sp-meta').textContent = `長さ ${Math.round(L).toLocaleString()} km ・ 震源 ${pts.length.toLocaleString()} 個 ・ 深さ方向の拡大 ×${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)}`;
+    const rs = ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1);
+    $('sp-meta').textContent = t(`長さ ${Math.round(L).toLocaleString()} km ・ 震源 ${pts.length.toLocaleString()} 個 ・ 深さ方向の拡大 ×${rs}`, `Length ${Math.round(L).toLocaleString()} km · ${pts.length.toLocaleString()} hypocenters · vertical scale ×${rs}`);
   },
   // 海溝の線と断面線の交点（距離 km と名前）
   trenchCrossings() {
-    const out = [], names = { kuril: '千島海溝', japan: '日本海溝', izu: '伊豆・小笠原海溝', sagami: '相模トラフ', nankai: '南海トラフ', ryukyu: '南西諸島海溝' };
+    const out = [], names = TRENCH_NAMES;
     const n = 64, path = [];
     for (let i = 0; i <= n; i++) path.push(slerpLL(this.a, this.b, i / n));
     const k = Math.cos(36 * DEG);
@@ -2974,29 +3069,40 @@ const Section = {
 // ====== 過去の大地震 ======
 // 規模・最大震度・発生時刻は気象庁、震源の位置と深さ・前後の地震は USGS のデータ
 const ARCHIVE = [
-  { key: 'aomori2025', name: '青森県東方沖の地震', jst: '2025年12月8日 23時15分', mj: 7.5, maxi: 8, desc: '八戸市で震度6強。津波警報が出され、初めて「北海道・三陸沖後発地震注意情報」が発表された。',
+  { key: 'aomori2025', name: t('青森県東方沖の地震', '2025 Aomori earthquake'), jst: t('2025年12月8日 23時15分', 'Dec 8, 2025 23:15 JST'), mj: 7.5, maxi: 8,
+    desc: t('八戸市で震度6強。津波警報が出され、初めて「北海道・三陸沖後発地震注意情報」が発表された。', 'Shindo 6+ in Hachinohe. A tsunami warning was issued, and the first Hokkaido/Sanriku-oki Subsequent Earthquake Advisory was announced.'),
     main: { t: '2025-12-08T14:15:09.896Z', lat: 40.998, lon: 142.184, depth: 40.7 }, box: [39.8, 42.3, 141.0, 143.8] },
-  { key: 'hyuganada2024', name: '日向灘の地震', jst: '2024年8月8日 16時42分', mj: 7.1, maxi: 7, desc: '宮崎県で震度6弱。初めて「南海トラフ地震臨時情報（巨大地震注意）」が発表された。',
+  { key: 'hyuganada2024', name: t('日向灘の地震', '2024 Hyuga-nada earthquake'), jst: t('2024年8月8日 16時42分', 'Aug 8, 2024 16:42 JST'), mj: 7.1, maxi: 7,
+    desc: t('宮崎県で震度6弱。初めて「南海トラフ地震臨時情報（巨大地震注意）」が発表された。', 'Shindo 6- in Miyazaki. The first Nankai Trough Earthquake Extra Information (Megaquake Advisory) was issued.'),
     main: { t: '2024-08-08T07:42:55.206Z', lat: 31.760, lon: 131.502, depth: 24 }, box: [30.8, 32.6, 130.8, 132.6] },
-  { key: 'noto2024', name: '令和6年能登半島地震', jst: '2024年1月1日 16時10分', mj: 7.6, maxi: 9, desc: '能登半島で震度7。海岸の地盤が大きく隆起し、大津波警報も発表された。',
+  { key: 'noto2024', name: t('令和6年能登半島地震', '2024 Noto Peninsula Earthquake'), jst: t('2024年1月1日 16時10分', 'Jan 1, 2024 16:10 JST'), mj: 7.6, maxi: 9,
+    desc: t('能登半島で震度7。海岸の地盤が大きく隆起し、大津波警報も発表された。', 'Shindo 7 on the Noto Peninsula. The coastline was uplifted significantly, and a Major Tsunami Warning was issued.'),
     main: { t: '2024-01-01T07:10:09.476Z', lat: 37.487, lon: 137.271, depth: 10 }, box: [36.4, 38.4, 135.8, 138.8] },
-  { key: 'fukushima2022', name: '福島県沖の地震', jst: '2022年3月16日 23時36分', mj: 7.4, maxi: 8, desc: '宮城県と福島県で震度6強。東北新幹線が脱線した。',
+  { key: 'fukushima2022', name: t('福島県沖の地震', '2022 Fukushima earthquake'), jst: t('2022年3月16日 23時36分', 'Mar 16, 2022 23:36 JST'), mj: 7.4, maxi: 8,
+    desc: t('宮城県と福島県で震度6強。東北新幹線が脱線した。', 'Shindo 6+ in Miyagi and Fukushima. A Tohoku Shinkansen train derailed.'),
     main: { t: '2022-03-16T14:36:30.997Z', lat: 37.713, lon: 141.579, depth: 41 }, box: [36.8, 38.6, 140.6, 142.8] },
-  { key: 'iburi2018', name: '北海道胆振東部地震', jst: '2018年9月6日 3時07分', mj: 6.7, maxi: 9, desc: '厚真町で震度7。大規模な土砂崩れが起き、北海道のほぼ全域が停電した。',
+  { key: 'iburi2018', name: t('北海道胆振東部地震', '2018 Hokkaido Eastern Iburi Earthquake'), jst: t('2018年9月6日 3時07分', 'Sep 6, 2018 03:07 JST'), mj: 6.7, maxi: 9,
+    desc: t('厚真町で震度7。大規模な土砂崩れが起き、北海道のほぼ全域が停電した。', 'Shindo 7 in Atsuma. Large landslides occurred, and nearly all of Hokkaido lost power.'),
     main: { t: '2018-09-05T18:07:59.150Z', lat: 42.686, lon: 141.929, depth: 35 }, box: [41.8, 43.6, 141.0, 143.0] },
-  { key: 'kumamoto2016', name: '熊本地震', jst: '2016年4月16日 1時25分（本震）', mj: 7.3, maxi: 9, desc: '4月14日の M6.5 と16日の M7.3 で、2回震度7を観測した。',
+  { key: 'kumamoto2016', name: t('熊本地震', '2016 Kumamoto Earthquakes'), jst: t('2016年4月16日 1時25分（本震）', 'Apr 16, 2016 01:25 JST (mainshock)'), mj: 7.3, maxi: 9,
+    desc: t('4月14日の M6.5 と16日の M7.3 で、2回震度7を観測した。', 'Shindo 7 was observed twice: M6.5 on April 14 and M7.3 on April 16.'),
     main: { t: '2016-04-15T16:25:06.220Z', lat: 32.791, lon: 130.754, depth: 10 },
-    extra: [{ t: '2016-04-14T12:26:35.730Z', lat: 32.788, lon: 130.704, depth: 9, mj: 6.5, maxi: 9, label: '前震' }], box: [31.8, 33.8, 129.8, 131.9] },
-  { key: 'tohoku2011', name: '東北地方太平洋沖地震', sub: '東日本大震災', jst: '2011年3月11日 14時46分', mj: 9.0, maxi: 9, desc: '日本の観測史上最大の地震。巨大な津波が太平洋沿岸を襲った。',
+    extra: [{ t: '2016-04-14T12:26:35.730Z', lat: 32.788, lon: 130.704, depth: 9, mj: 6.5, maxi: 9, label: t('前震', 'foreshock') }], box: [31.8, 33.8, 129.8, 131.9] },
+  { key: 'tohoku2011', name: t('東北地方太平洋沖地震', '2011 Tohoku Earthquake'), sub: t('東日本大震災', 'Great East Japan Earthquake'), jst: t('2011年3月11日 14時46分', 'Mar 11, 2011 14:46 JST'), mj: 9.0, maxi: 9,
+    desc: t('日本の観測史上最大の地震。巨大な津波が太平洋沿岸を襲った。', 'The largest earthquake ever recorded in Japan. A massive tsunami struck the Pacific coast.'),
     main: { t: '2011-03-11T05:46:24.120Z', lat: 38.297, lon: 142.373, depth: 29 },
-    extra: [{ t: '2011-03-09T02:45:20.330Z', lat: 38.435, lon: 142.842, depth: 32, mj: 7.3, maxi: 5, label: '前震' }], box: [34.5, 41.8, 139.5, 146.5], before: 3 },
-  { key: 'iwate2008', name: '岩手・宮城内陸地震', jst: '2008年6月14日 8時43分', mj: 7.2, maxi: 8, desc: '内陸で起きた地震。大規模な地すべりが起きた。',
+    extra: [{ t: '2011-03-09T02:45:20.330Z', lat: 38.435, lon: 142.842, depth: 32, mj: 7.3, maxi: 5, label: t('前震', 'foreshock') }], box: [34.5, 41.8, 139.5, 146.5], before: 3 },
+  { key: 'iwate2008', name: t('岩手・宮城内陸地震', '2008 Iwate–Miyagi Nairiku Earthquake'), jst: t('2008年6月14日 8時43分', 'Jun 14, 2008 08:43 JST'), mj: 7.2, maxi: 8,
+    desc: t('内陸で起きた地震。大規模な地すべりが起きた。', 'An inland earthquake that caused large landslides.'),
     main: { t: '2008-06-13T23:43:45.360Z', lat: 39.030, lon: 140.881, depth: 8 }, box: [38.5, 39.6, 140.3, 141.5] },
-  { key: 'chuetsu2004', name: '新潟県中越地震', jst: '2004年10月23日 17時56分', mj: 6.8, maxi: 9, desc: '震度計で初めて震度7を観測した地震。山あいで土砂災害が多く起きた。',
+  { key: 'chuetsu2004', name: t('新潟県中越地震', '2004 Mid Niigata Prefecture Earthquake'), jst: t('2004年10月23日 17時56分', 'Oct 23, 2004 17:56 JST'), mj: 6.8, maxi: 9,
+    desc: t('震度計で初めて震度7を観測した地震。山あいで土砂災害が多く起きた。', 'The first time Shindo 7 was recorded by a seismic intensity meter. Many landslides occurred in the mountains.'),
     main: { t: '2004-10-23T08:56:00.860Z', lat: 37.226, lon: 138.779, depth: 16 }, box: [36.7, 37.9, 138.2, 139.6] },
-  { key: 'tokachi2003', name: '十勝沖地震', jst: '2003年9月26日 4時50分', mj: 8.0, maxi: 7, desc: '太平洋プレートの沈み込みにともなう海溝型の巨大地震。',
+  { key: 'tokachi2003', name: t('十勝沖地震', '2003 Tokachi-oki Earthquake'), jst: t('2003年9月26日 4時50分', 'Sep 26, 2003 04:50 JST'), mj: 8.0, maxi: 7,
+    desc: t('太平洋プレートの沈み込みにともなう海溝型の巨大地震。', 'A great megathrust earthquake on the subducting Pacific Plate.'),
     main: { t: '2003-09-25T19:50:06.360Z', lat: 41.815, lon: 143.910, depth: 27 }, box: [40.8, 43.0, 142.8, 145.6] },
-  { key: 'kobe1995', name: '兵庫県南部地震', sub: '阪神・淡路大震災', jst: '1995年1月17日 5時46分', mj: 7.3, maxi: 9, desc: '都市の直下で起きた地震。震度7が初めて適用された。',
+  { key: 'kobe1995', name: t('兵庫県南部地震', '1995 Southern Hyogo Earthquake'), sub: t('阪神・淡路大震災', 'Great Hanshin-Awaji Earthquake'), jst: t('1995年1月17日 5時46分', 'Jan 17, 1995 05:46 JST'), mj: 7.3, maxi: 9,
+    desc: t('都市の直下で起きた地震。震度7が初めて適用された。', 'An earthquake directly beneath a city. It was the first time Shindo 7 was applied.'),
     main: { t: '1995-01-16T20:46:52.120Z', lat: 34.583, lon: 135.018, depth: 22 }, box: [34.0, 35.2, 134.3, 135.8] },
 ].map((a) => ({ ...a, main: { ...a.main, t: Date.parse(a.main.t) }, extra: (a.extra || []).map((x) => ({ ...x, t: Date.parse(x.t) })) }));
 
@@ -3015,7 +3121,7 @@ const Archive = {
     $('archive-list').innerHTML = ARCHIVE.map((a) => `
       <button class="q-item${this.active === a ? ' arch-on' : ''}" data-akey="${a.key}">
         ${badgeHTML(a.maxi)}
-        <div style="min-width:0"><div class="q-name">${esc(a.name)}</div>${a.sub ? `<div class="q-sub">${esc(a.sub)}</div>` : ''}<div class="q-meta num">${esc(a.jst.replace(/（.*）/, ''))} · M${a.mj.toFixed(1)}</div></div>
+        <div style="min-width:0"><div class="q-name">${esc(a.name)}</div>${a.sub ? `<div class="q-sub">${esc(a.sub)}</div>` : ''}<div class="q-meta num">${esc(a.jst.replace(/（.*）| \(.*\)/, ''))} · M${a.mj.toFixed(1)}</div></div>
         <div class="q-ago">${new Date(a.main.t).getUTCFullYear()}</div></button>`).join('');
   },
   bounds() { const a = this.active; return [a.main.t - (a.before ?? 2) * 864e5, a.main.t + (a.after ?? 30) * 864e5]; },
@@ -3036,7 +3142,7 @@ const Archive = {
     const a = ARCHIVE.find((x) => x.key === key);
     if (!a) return;
     if (Globe.active) Globe.exit();
-    if (State.eew) { toast('緊急地震速報の表示中は開けません', 'warn'); return; }
+    if (State.eew) { toast(t('緊急地震速報の表示中は開けません', 'Not available while an Earthquake Early Warning is shown'), 'warn'); return; }
     if (!this.active) this.saved = { t: controls.target.clone(), p: camera.position.clone() };
     selectEvent(null);
     stopReplay();
@@ -3046,14 +3152,14 @@ const Archive = {
     renderArchiveDetail(a, null);
     let events;
     try { events = await this.fetchEvents(a); }
-    catch (e) { toast('過去の震源データを取得できませんでした', 'bad'); if (this.active === a) this.close(); return; }
+    catch (e) { toast(t('過去の震源データを取得できませんでした', 'Could not load the hypocenter data'), 'bad'); if (this.active === a) this.close(); return; }
     if (this.active !== a) return;
     this.loading = null;
     // 本震・前震と同じ地震は点の層から外す（目印で別に表示する）
     const keys = [a.main, ...a.extra];
     this.events = events.filter((e) => !keys.some((k) => Math.abs(e.time - k.t) < 60e3 && kmBetween(e.lat, e.lon, k.lat, k.lon) < 80));
     setPointData(archLayer, this.events, (e, c) => depthColor(e.depth, c), archSize);
-    this.keyEvents = [...a.extra.map((x) => ({ ...x, name: `${a.name}の${x.label}` })), { ...a.main, mj: a.mj, maxi: a.maxi, name: a.name, main: true }].sort((p, q) => p.t - q.t);
+    this.keyEvents = [...a.extra.map((x) => ({ ...x, name: t(`${a.name}の${x.label}`, `${a.name} (${x.label})`) })), { ...a.main, mj: a.mj, maxi: a.maxi, name: a.name, main: true }].sort((p, q) => p.t - q.t);
     applyVisibility();
     $('timeline').classList.add('arch');
     renderArchiveDetail(a, this.events);
@@ -3143,19 +3249,19 @@ function renderArchiveDetail(a, events) {
   const n = events ? events.length : null;
   const days = (a.after ?? 30);
   $('detail-body').innerHTML = `
-    <div class="d-head">${badgeHTML(a.maxi, 'big')}<div><div class="d-kind" style="color:#ffb27a">過去の大地震 ・ 最大${SHINDO[a.maxi].label}</div><div class="d-name">${esc(a.name)}</div><div class="d-time">${a.sub ? esc(a.sub) + ' ・ ' : ''}${esc(a.jst)}</div></div>
-      <button class="icon-btn" id="d-close" aria-label="閉じる"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="d-head">${badgeHTML(a.maxi, 'big')}<div><div class="d-kind" style="color:#ffb27a">${t(`過去の大地震 ・ 最大${SHINDO[a.maxi].label}`, `Historic earthquake · max. ${SHINDO[a.maxi].label}`)}</div><div class="d-name">${esc(a.name)}</div><div class="d-time">${a.sub ? esc(a.sub) + t(' ・ ', ' · ') : ''}${esc(a.jst)}</div></div>
+      <button class="icon-btn" id="d-close" aria-label="${t('閉じる', 'Close')}"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="d-grid">
-      <div class="d-cell"><label>規模（気象庁）</label><b class="num">M${a.mj.toFixed(1)}</b></div>
-      <div class="d-cell"><label>深さ（USGS）</label><b class="num">${Math.round(a.main.depth)}<small>km</small></b></div>
-      <div class="d-cell"><label>前後の地震</label><b class="num">${n == null ? '…' : n.toLocaleString() + '<small>個</small>'}</b></div>
-      <div class="d-cell"><label>表示する期間</label><b class="num" style="font-size:13px">前${a.before ?? 2}日〜後${days}日</b></div>
+      <div class="d-cell"><label>${t('規模（気象庁）', 'Magnitude (JMA)')}</label><b class="num">M${a.mj.toFixed(1)}</b></div>
+      <div class="d-cell"><label>${t('深さ（USGS）', 'Depth (USGS)')}</label><b class="num">${Math.round(a.main.depth)}<small>km</small></b></div>
+      <div class="d-cell"><label>${t('前後の地震', 'Quakes shown')}</label><b class="num">${n == null ? '…' : n.toLocaleString() + t('<small>個</small>', '')}</b></div>
+      <div class="d-cell"><label>${t('表示する期間', 'Period')}</label><b class="num" style="font-size:13px">${t(`前${a.before ?? 2}日〜後${days}日`, `−${a.before ?? 2} d to +${days} d`)}</b></div>
     </div>
     <div class="d-note">${esc(a.desc)}</div>
-    <div class="d-sec"><h4>1日ごとの地震の数</h4><canvas class="d-chart" id="d-chart"></canvas><div class="d-cap">USGS の震源（日本付近はおおむね M4 以上）。本震のあと、日を追って減っていく様子がわかります。</div></div>
+    <div class="d-sec"><h4>${t('1日ごとの地震の数', 'Earthquakes per day')}</h4><canvas class="d-chart" id="d-chart"></canvas><div class="d-cap">${t('USGS の震源（日本付近はおおむね M4 以上）。本震のあと、日を追って減っていく様子がわかります。', 'USGS hypocenters (about M4 and above near Japan). You can see the aftershocks decrease day by day.')}</div></div>
     <div class="d-actions">
-      <button class="btn primary grow" id="d-replay"><svg class="ic" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;width:14px;height:14px"><path d="M8 5.5v13l10.5-6.5z"/></svg>最初から再生</button>
-      <button class="btn" id="d-exit">終了</button>
+      <button class="btn primary grow" id="d-replay"><svg class="ic" viewBox="0 0 24 24" style="fill:currentColor;stroke:none;width:14px;height:14px"><path d="M8 5.5v13l10.5-6.5z"/></svg>${t('最初から再生', 'Replay from the start')}</button>
+      <button class="btn" id="d-exit">${t('終了', 'Exit')}</button>
     </div>`;
   $('d-close').onclick = $('d-exit').onclick = () => Archive.close();
   $('d-replay').onclick = () => Archive.replay();
@@ -3185,10 +3291,13 @@ function drawArchiveChart(a, events) {
   g.fillStyle = '#fff';
   const mx0 = (a.main.t - t0) / (t1 - t0) * w;
   g.fillRect(mx0, 0, 1.5, ch);
-  g.font = '9.5px ui-monospace, Menlo, monospace'; g.fillStyle = 'rgba(160,175,200,0.8)'; g.textBaseline = 'top';
-  g.textAlign = 'left'; g.fillText(`最大 ${mx}個/日`, 3, 2);
-  g.textAlign = 'center'; g.fillText('本震', clamp(mx0, 14, w - 14), ch + 1);
-  g.textAlign = 'right'; g.fillText(`${nd}日`, w - 2, ch + 1);
+  // 文字は棒グラフに重なっても読めるよう、暗い縁取りをつける
+  g.font = '9.5px ui-monospace, Menlo, monospace'; g.textBaseline = 'top'; g.lineJoin = 'round';
+  g.strokeStyle = 'rgba(8,12,24,0.9)'; g.lineWidth = 3; g.fillStyle = 'rgba(170,185,210,0.9)';
+  const label = (s, x, y, align) => { g.textAlign = align; g.strokeText(s, x, y); g.fillText(s, x, y); };
+  label(t(`最大 ${mx}個/日`, `max ${mx}/day`), 3, 2, 'left');
+  label(t('本震', 'mainshock'), clamp(mx0, 26, w - 26), ch + 1, 'center');
+  label(t(`${nd}日`, `${nd} d`), w - 2, ch + 1, 'right');
 }
 
 // ====== 地球儀 ======
@@ -3364,13 +3473,13 @@ const Globe = {
   load() {
     if (this.tex === 'none') {
       this.tex = 'loading';
-      toast('世界の地形を読み込んでいます…', 'info', 2500);
+      toast(t('世界の地形を読み込んでいます…', 'Loading world terrain…'), 'info', 2500);
       const n = GLOBE_TILE.n - 1;
       loadElevationMosaic(GLOBE_TILE.z, 0, n, 0, n).then(({ W, H, elev }) => {
         globeU.uGlobeTex.value = bakeColorTexture(W, H, elev, GLOBE_TILE.z, 0);
         globeU.uHasTex.value = 1;
         this.tex = 'done';
-      }).catch(() => { this.tex = 'none'; toast('世界の地形を読み込めませんでした', 'warn'); });
+      }).catch(() => { this.tex = 'none'; toast(t('世界の地形を読み込めませんでした', 'Could not load world terrain'), 'warn'); });
     }
     if (this.quakes === 'none') {
       this.quakes = 'loading';
@@ -3388,7 +3497,7 @@ const Globe = {
         setPointData(globalLayer, items, (e, c) => depthColor(e.depth, c), globalSize);
         this.quakes = 'done';
         applyVisibility();
-      }).catch(() => { this.quakes = 'none'; toast('世界の地震を取得できませんでした', 'warn'); });
+      }).catch(() => { this.quakes = 'none'; toast(t('世界の地震を取得できませんでした', 'Could not load world earthquakes'), 'warn'); });
     }
     if (this.plates === 'none') {
       this.plates = 'loading';
@@ -3415,7 +3524,7 @@ const Globe = {
   // 世界の地震を選んだとき
   select(e) {
     this.sel = e;
-    const ev = { hasHypo: true, inRegion: true, lat: e.lat, lon: e.lon, depth: e.depth, mag: e.mag, maxi: 0, name: e.place || '（場所不明）', time: e.time, globe: true };
+    const ev = { hasHypo: true, inRegion: true, lat: e.lat, lon: e.lon, depth: e.depth, mag: e.mag, maxi: 0, name: e.place || t('（場所不明）', '(unknown location)'), time: e.time, globe: true };
     setMarker(focusMarker, ev);
     renderGlobalDetail(e);
     const m = e.mag ?? 5.5;
@@ -3431,15 +3540,15 @@ function renderGlobalDetail(e) {
   if (!e) { panel.classList.add('hidden'); return; }
   panel.classList.remove('hidden');
   $('detail-body').innerHTML = `
-    <div class="d-head"><div class="badge none big" style="font-size:15px">M${e.mag != null ? e.mag.toFixed(1) : '?'}</div><div><div class="d-kind">世界の地震（USGS）</div><div class="d-name">${esc(e.place || '場所不明')}</div><div class="d-time num">${fmtLong(e.time)}（日本時間）</div></div>
-      <button class="icon-btn" id="d-close" aria-label="閉じる"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="d-head"><div class="badge none big" style="font-size:15px">M${e.mag != null ? e.mag.toFixed(1) : '?'}</div><div><div class="d-kind">${t('世界の地震（USGS）', 'World earthquake (USGS)')}</div><div class="d-name">${esc(e.place || t('場所不明', 'Unknown location'))}</div><div class="d-time num">${fmtLong(e.time)}${t('（日本時間）', '')}</div></div>
+      <button class="icon-btn" id="d-close" aria-label="${t('閉じる', 'Close')}"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="d-grid">
-      <div class="d-cell"><label>マグニチュード</label><b class="num">${e.mag != null ? e.mag.toFixed(1) : '不明'}</b></div>
-      <div class="d-cell"><label>深さ</label><b class="num">${Math.round(e.depth)}<small>km</small></b></div>
-      <div class="d-cell"><label>震源</label><b class="num" style="font-size:13px">${Math.abs(e.lat).toFixed(1)}°${e.lat >= 0 ? 'N' : 'S'} ${Math.abs(e.lon).toFixed(1)}°${e.lon >= 0 ? 'E' : 'W'}</b></div>
-      <div class="d-cell"><label>日本からの距離</label><b class="num">${Math.round(kmBetween(35.68, 139.76, e.lat, e.lon)).toLocaleString()}<small>km</small></b></div>
+      <div class="d-cell"><label>${t('マグニチュード', 'Magnitude')}</label><b class="num">${e.mag != null ? e.mag.toFixed(1) : t('不明', 'unknown')}</b></div>
+      <div class="d-cell"><label>${t('深さ', 'Depth')}</label><b class="num">${Math.round(e.depth)}<small>km</small></b></div>
+      <div class="d-cell"><label>${t('震源', 'Epicenter')}</label><b class="num" style="font-size:13px">${Math.abs(e.lat).toFixed(1)}°${e.lat >= 0 ? 'N' : 'S'} ${Math.abs(e.lon).toFixed(1)}°${e.lon >= 0 ? 'E' : 'W'}</b></div>
+      <div class="d-cell"><label>${t('日本からの距離', 'From Tokyo')}</label><b class="num">${Math.round(kmBetween(35.68, 139.76, e.lat, e.lon)).toLocaleString()}<small>km</small></b></div>
     </div>
-    <div class="d-note">場所の名前は USGS の英語表記です。揺れの広がりは、地球の中をまっすぐ伝わるとした単純な目安です。</div>`;
+    <div class="d-note">${t('場所の名前は USGS の英語表記です。揺れの広がりは、地球の中をまっすぐ伝わるとした単純な目安です。', 'Place names are from USGS. The spreading shaking is a simple estimate that assumes waves travel straight through the Earth.')}</div>`;
   $('d-close').onclick = () => { Globe.sel = null; stopReplay(); setMarker(focusMarker, null); renderGlobalDetail(null); };
 }
 
@@ -3503,13 +3612,13 @@ function showTooltip(hit, x, y) {
   let html = '';
   if (hit.kind === 'jma') {
     const e = hit.e;
-    html = `<div class="tt-title">${miniBadge(e.maxi)}${esc(e.name)}</div><div class="tt-meta num">${fmtShort(e.time)} · ${fmtMag(e.mag)} · 深さ${fmtDepth(e.depth)}</div><div class="tt-meta" style="color:var(--dim)">クリックで揺れを再生</div>`;
+    html = `<div class="tt-title">${miniBadge(e.maxi)}${esc(e.name)}</div><div class="tt-meta num">${fmtShort(e.time)} · ${fmtMag(e.mag)} · ${t('深さ', 'depth ')}${fmtDepth(e.depth)}</div><div class="tt-meta" style="color:var(--dim)">${t('クリックで揺れを再生', 'Click to replay the shaking')}</div>`;
   } else if (hit.kind === 'usgs') {
     const e = hit.e;
-    html = `<div class="tt-title">${fmtMag(e.mag)}　深さ${Math.round(e.depth)}km</div><div class="tt-meta num">${fmtDate(e.time)} ${fmtShort(e.time).split(' ')[1]}（日本時間）</div><div class="tt-meta" style="color:var(--dim)">${esc(e.place)}（USGS）</div>${hit.global ? '<div class="tt-meta" style="color:var(--dim)">クリックで揺れの広がりを表示</div>' : ''}`;
+    html = `<div class="tt-title">${fmtMag(e.mag)}${t('　深さ', ' · depth ')}${Math.round(e.depth)}km</div><div class="tt-meta num">${fmtDate(e.time)} ${fmtShort(e.time).split(' ')[1]}${t('（日本時間）', ' JST')}</div><div class="tt-meta" style="color:var(--dim)">${esc(e.place)}${t('（USGS）', ' (USGS)')}</div>${hit.global ? `<div class="tt-meta" style="color:var(--dim)">${t('クリックで揺れの広がりを表示', 'Click to show the spreading shaking')}</div>` : ''}`;
   } else if (hit.kind === 'station') {
     const s = hit.s;
-    html = `<div class="tt-title">${miniBadge(s.s)}${esc(s.name)}</div><div class="tt-meta">${esc(s.pref)}　${SHINDO[s.s].label}</div>`;
+    html = `<div class="tt-title">${miniBadge(s.s)}${esc(s.name)}</div><div class="tt-meta">${esc(s.pref)}${t('　', ' · ')}${SHINDO[s.s].label}</div>`;
   }
   tt.innerHTML = html;
   tt.classList.remove('hidden');
@@ -3583,19 +3692,19 @@ function notify(title, body) {
 function eventTitle(ev) {
   if (ev.hasHypo || !ev.points?.length) return ev.name;
   const top = [...ev.points].sort((a, b) => b.scale - a.scale)[0];
-  return `${top.addr || top.pref}など（震源は調査中）`;
+  return t(`${top.addr || top.pref}など（震源は調査中）`, `${prefLabel(top.pref)} and nearby (epicenter under investigation)`);
 }
 function announce(ev) {
   // 古い情報（遅れて届いたもの・試験配信の再送）では鳴らさない
   if (!SANDBOX && Date.now() - ev.time > 20 * 60e3) return;
   ev.isNew = true;
   const s = ev.maxi || 0;
-  const label = s ? SHINDO[s].label : '震度不明';
+  const label = s ? SHINDO[s].label : t('震度不明', 'Shindo unknown');
   if (s >= S.notifyMin) {
     if (S.sound) Sound.chime();
     const title = eventTitle(ev);
-    notify(`【${label}】${title}`, ev.hasHypo ? `${fmtShort(ev.time)} ${fmtMag(ev.mag)} 深さ${fmtDepth(ev.depth)}` : `${fmtShort(ev.time)}ごろ 地震がありました`);
-    toast(`${label}　${title}（${fmtShort(ev.time)}）`, s >= 5 ? 'bad' : s >= 4 ? 'warn' : 'info');
+    notify(t(`【${label}】${title}`, `[${label}] ${title}`), ev.hasHypo ? `${fmtShort(ev.time)} ${fmtMag(ev.mag)} ${t('深さ', 'depth ')}${fmtDepth(ev.depth)}` : t(`${fmtShort(ev.time)}ごろ 地震がありました`, `An earthquake occurred around ${fmtShort(ev.time)}`));
+    toast(t(`${label}　${title}（${fmtShort(ev.time)}）`, `${label} · ${title} · ${fmtShort(ev.time)}`), s >= 5 ? 'bad' : s >= 4 ? 'warn' : 'info');
   }
   focusIfIdle(ev);
 }
@@ -3611,26 +3720,26 @@ function focusIfIdle(ev) {
 const Conn = { ws: null, retry: 0, timer: null, leader: false, state: '', text: '' };
 const channel = 'BroadcastChannel' in window ? new BroadcastChannel('quake3d') : null;
 const CONN_HELP = {
-  ok: 'P2P地震情報のリアルタイム配信を受信しています。',
-  bad: 'P2P地震情報のリアルタイム配信に接続できていません。同じネットワークからの接続数の上限（2本）に達していることがあります。そのあいだも地震情報は1分ごとに確認しています。',
+  ok: t('P2P地震情報のリアルタイム配信を受信しています。', 'Receiving live updates from P2P Quake.'),
+  bad: t('P2P地震情報のリアルタイム配信に接続できていません。同じネットワークからの接続数の上限（2本）に達していることがあります。そのあいだも地震情報は1分ごとに確認しています。', 'Not connected to the P2P Quake live feed. The limit of two connections per network may have been reached. Earthquake information is still checked every minute.'),
 };
 function setConn(state, text) {
   Conn.state = state; Conn.text = text;
   const el = $('conn');
   el.className = 'conn ' + state;
-  const label = (SANDBOX ? '[試験配信] ' : '') + text;
+  const label = (SANDBOX ? t('[試験配信] ', '[sandbox] ') : '') + text;
   el.querySelector('.txt').textContent = label;
   el.title = CONN_HELP[state] || label;
   if (Conn.leader) channel?.postMessage({ type: 'conn', state, text });
 }
 function startRealtime() {
   if (navigator.locks && channel) {
-    setConn('', '別のタブで受信中');
+    setConn('', t('別のタブで受信中', 'Receiving in another tab'));
     channel.onmessage = (e) => {
       const d = e.data || {};
       if (Conn.leader) { if (d.type === 'hello') channel.postMessage({ type: 'conn', state: Conn.state, text: Conn.text }); return; }
       if (d.type === 'msg') onMessage(d.m);
-      else if (d.type === 'conn') setConn(d.state, d.text + '（別タブ）');
+      else if (d.type === 'conn') setConn(d.state, d.text + t('（別タブ）', ' (other tab)'));
     };
     channel.postMessage({ type: 'hello' });
     navigator.locks.request('quake3d-ws', () => { Conn.leader = true; connectWS(); return new Promise(() => {}); });
@@ -3639,15 +3748,15 @@ function startRealtime() {
 function connectWS() {
   clearTimeout(Conn.timer);
   try { Conn.ws = new WebSocket(P2P_WS); } catch { scheduleReconnect(); return; }
-  setConn('', '接続中…');
-  Conn.ws.onopen = () => { Conn.retry = 0; setConn('ok', 'リアルタイム受信中'); };
+  setConn('', t('接続中…', 'Connecting…'));
+  Conn.ws.onopen = () => { Conn.retry = 0; setConn('ok', t('リアルタイム受信中', 'Live')); };
   Conn.ws.onmessage = (e) => {
     let m;
     try { m = JSON.parse(e.data); } catch { return; }
     channel?.postMessage({ type: 'msg', m });
     try { onMessage(m); } catch (err) { console.warn(err); }
   };
-  Conn.ws.onclose = () => { setConn('bad', '再接続待ち（1分ごとに確認中）'); scheduleReconnect(); };
+  Conn.ws.onclose = () => { setConn('bad', t('再接続待ち（1分ごとに確認中）', 'Reconnecting (checking every minute)')); scheduleReconnect(); };
   Conn.ws.onerror = () => {};
 }
 function scheduleReconnect() {
@@ -3668,12 +3777,12 @@ function onMessage(m) {
   } else if (m.code === 556) {
     handleEEW(m);
   } else if (m.code === 552) {
-    if (m.cancelled) toast('津波予報は解除されました', 'ok');
+    if (m.cancelled) toast(t('津波予報は解除されました', 'The tsunami forecast has been lifted'), 'ok');
     else {
       const g = new Set((m.areas || []).map((a) => a.grade));
-      const kind = g.has('MajorWarning') ? '大津波警報' : g.has('Warning') ? '津波警報' : g.has('Watch') ? '津波注意報' : '津波予報';
-      toast(`🌊 ${kind}が発表されました。海岸から離れてください。`, 'bad', 15000);
-      notify(kind, '海岸や川沿いから離れてください。');
+      const kind = g.has('MajorWarning') ? t('大津波警報', 'Major Tsunami Warning') : g.has('Warning') ? t('津波警報', 'Tsunami Warning') : g.has('Watch') ? t('津波注意報', 'Tsunami Advisory') : t('津波予報', 'Tsunami Forecast');
+      toast(t(`🌊 ${kind}が発表されました。海岸から離れてください。`, `🌊 ${kind} issued. Move away from the coast.`), 'bad', 15000);
+      notify(kind, t('海岸や川沿いから離れてください。', 'Move away from the coast and rivers.'));
     }
   }
 }
@@ -3712,14 +3821,14 @@ const Me = { obj: null };
 function setMe(lat, lon, name) {
   if (Me.obj) { labelGroup.remove(Me.obj); Me.obj = null; }
   if (lat == null) return;
-  Me.obj = addLabel(esc(name || '自分の地点'), 'lbl-me', lat, lon, 'surface', [0, 0.5]);
+  Me.obj = addLabel(esc(name || t('自分の地点', 'You')), 'lbl-me', lat, lon, 'surface', [0, 0.5]);
   placeLabel(Me.obj);
 }
 function handleEEW(m, demo = false) {
   if (m.test && !demo) return;
   const evId = m.issue?.eventId || 'x';
   if (m.cancelled) {
-    if (State.eew && State.eew.id === evId) { toast('緊急地震速報は取り消されました', 'ok'); endEEW(); }
+    if (State.eew && State.eew.id === evId) { toast(t('緊急地震速報は取り消されました', 'The Earthquake Early Warning was cancelled'), 'ok'); endEEW(); }
     return;
   }
   const q = m.earthquake || {}, h = q.hypocenter || {};
@@ -3732,21 +3841,23 @@ function handleEEW(m, demo = false) {
   const isNewEvent = !State.eew || State.eew.id !== evId;
   if (Archive.active) Archive.close();
   if (Globe.active && isNewEvent) Globe.exit();
-  State.eew = { id: evId, demo, origin, lat: hasHypo ? +h.latitude : null, lon: hasHypo ? +h.longitude : null, depth: h.depth >= 0 ? +h.depth : 10, mag: h.magnitude > 0 ? +h.magnitude : null, name: h.name || '震源を調査中', maxi: Math.max(maxTo, maxFrom), areas: m.areas || [], serial: m.issue?.serial, until: origin + 180e3 };
+  State.eew = { id: evId, demo, origin, lat: hasHypo ? +h.latitude : null, lon: hasHypo ? +h.longitude : null, depth: h.depth >= 0 ? +h.depth : 10, mag: h.magnitude > 0 ? +h.magnitude : null, name: (EN && h.name ? enPlace(h.name, hasHypo ? +h.latitude : null, hasHypo ? +h.longitude : null) : h.name) || t('震源を調査中', 'Epicenter under investigation'), maxi: Math.max(maxTo, maxFrom), areas: m.areas || [], serial: m.issue?.serial, until: origin + 180e3 };
   const E = State.eew;
   const box = $('eew');
   box.classList.remove('hidden');
   box.classList.toggle('demo', demo);
-  $('eew-tag').textContent = demo ? '【デモ】緊急地震速報（訓練）' : '緊急地震速報（警報）';
-  $('eew-sub').textContent = E.serial ? `第${E.serial}報` : '';
+  $('eew-tag').textContent = demo ? t('【デモ】緊急地震速報（訓練）', '[DEMO] Earthquake Early Warning') : t('緊急地震速報（警報）', 'Earthquake Early Warning');
+  $('eew-sub').textContent = E.serial ? t(`第${E.serial}報`, `No. ${E.serial}`) : '';
   $('eew-name').textContent = E.name;
-  $('eew-meta').textContent = `${fmtShort(origin)}ごろ発生 · ${E.mag ? 'M' + E.mag.toFixed(1) + '（推定）' : 'M調査中'} · 深さ${fmtDepth(E.depth)}`;
-  $('eew-max').innerHTML = badgeHTML(E.maxi, 'big') + (m.areas?.some((a) => a.scaleTo === 99) ? '<div style="font-size:10px;color:#ffc9c4;margin-top:3px">程度以上</div>' : '');
+  $('eew-meta').textContent = t(`${fmtShort(origin)}ごろ発生 · ${E.mag ? 'M' + E.mag.toFixed(1) + '（推定）' : 'M調査中'} · 深さ${fmtDepth(E.depth)}`, `Occurred ${fmtShort(origin)} JST · ${E.mag ? 'M' + E.mag.toFixed(1) + ' (est.)' : 'M under investigation'} · depth ${fmtDepth(E.depth)}`);
+  $('eew-max').innerHTML = badgeHTML(E.maxi, 'big') + (m.areas?.some((a) => a.scaleTo === 99) ? `<div style="font-size:10px;color:#ffc9c4;margin-top:3px">${t('程度以上', 'or more')}</div>` : '');
   const areas = [...(m.areas || [])].sort((a, b) => b.scaleFrom - a.scaleFrom);
-  $('eew-areas').innerHTML = areas.slice(0, 18).map((a) => `<span>${esc(a.name)}</span>`).join('') + (areas.length > 18 ? `<span>ほか${areas.length - 18}地域</span>` : '');
+  // 英語のときは細分区域の代わりに都道府県名を並べる（P2P地震情報の区域名は日本語だけのため）
+  const areaNames = EN ? [...new Set(areas.map((a) => prefLabel(a.pref)))] : areas.map((a) => a.name);
+  $('eew-areas').innerHTML = areaNames.slice(0, 18).map((n) => `<span>${esc(n)}</span>`).join('') + (areaNames.length > 18 ? `<span>${t(`ほか${areaNames.length - 18}地域`, `+${areaNames.length - 18} more`)}</span>` : '');
   if (isNewEvent) {
     if (S.eewSound) Sound.alarm();
-    if (!demo) notify('緊急地震速報', `${E.name}で地震。強い揺れに警戒してください。`);
+    if (!demo) notify(t('緊急地震速報', 'Earthquake Early Warning'), t(`${E.name}で地震。強い揺れに警戒してください。`, `Earthquake near ${E.name}. Be ready for strong shaking.`));
     if (Timeline.playing) Timeline.goLive();
     stopReplay();
   }
@@ -3772,11 +3883,13 @@ function updateEEW() {
   const el = $('eew-count');
   if (S.meLat != null && E.lat != null) {
     const d = hypoDist(E.lat, E.lon, E.depth, S.meLat, S.meLon);
-    const t = (now - E.origin) / 1000;
-    const tp = d / VP - t, ts = d / VS - t;
-    const name = S.me === 'geo' ? '現在地' : (PREFS.find((p) => String(p.code) === S.me)?.cap || '自分の地点');
+    const dt = (now - E.origin) / 1000;
+    const tp = d / VP - dt, ts = d / VS - dt;
+    const name = S.me === 'geo' ? t('現在地', 'Your location') : (PREFS.find((p) => String(p.code) === S.me)?.capLabel || t('自分の地点', 'You'));
     el.classList.remove('hidden');
-    el.innerHTML = `<span>${esc(name)}まで約${Math.round(d)}km</span><span>P波 ${tp > 0 ? `あと<b>${tp.toFixed(0)}</b>秒` : '<b>到達</b>'}</span><span>S波（主要動） ${ts > 0 ? `あと<b>${ts.toFixed(0)}</b>秒` : '<b>到達</b>'}</span>`;
+    el.innerHTML = EN
+      ? `<span>${esc(name)}: about ${Math.round(d)} km</span><span>P-wave ${tp > 0 ? `in <b>${tp.toFixed(0)}</b> s` : '<b>arrived</b>'}</span><span>S-wave (main shaking) ${ts > 0 ? `in <b>${ts.toFixed(0)}</b> s` : '<b>arrived</b>'}</span>`
+      : `<span>${esc(name)}まで約${Math.round(d)}km</span><span>P波 ${tp > 0 ? `あと<b>${tp.toFixed(0)}</b>秒` : '<b>到達</b>'}</span><span>S波（主要動） ${ts > 0 ? `あと<b>${ts.toFixed(0)}</b>秒` : '<b>到達</b>'}</span>`;
   } else el.classList.add('hidden');
 }
 function endEEW() {
@@ -3799,11 +3912,11 @@ const toShindoIdx = (I) => (I < 0.5 ? 0 : I < 1.5 ? 1 : I < 2.5 ? 2 : I < 3.5 ? 
 const IDX_TO_P2P = [0, 10, 20, 30, 40, 45, 50, 55, 60, 70];
 function runDemo() {
   const SCEN = [
-    { name: '宮城県沖', lat: 38.3, lon: 142.0, depth: 50, mag: 7.1 },
-    { name: '千葉県東方沖', lat: 35.7, lon: 140.8, depth: 30, mag: 6.6 },
-    { name: '日向灘', lat: 32.0, lon: 131.9, depth: 30, mag: 6.9 },
-    { name: '石川県能登地方', lat: 37.4, lon: 137.2, depth: 10, mag: 6.8 },
-    { name: '十勝沖', lat: 42.2, lon: 144.0, depth: 40, mag: 7.3 },
+    { name: t('宮城県沖', 'Off Miyagi'), lat: 38.3, lon: 142.0, depth: 50, mag: 7.1 },
+    { name: t('千葉県東方沖', 'Off eastern Chiba'), lat: 35.7, lon: 140.8, depth: 30, mag: 6.6 },
+    { name: t('日向灘', 'Hyuga-nada'), lat: 32.0, lon: 131.9, depth: 30, mag: 6.9 },
+    { name: t('石川県能登地方', 'Noto, Ishikawa'), lat: 37.4, lon: 137.2, depth: 10, mag: 6.8 },
+    { name: t('十勝沖', 'Off Tokachi'), lat: 42.2, lon: 144.0, depth: 40, mag: 7.3 },
   ];
   const sc = SCEN[(runDemo.n = ((runDemo.n ?? Math.floor(Math.random() * SCEN.length)) + 1) % SCEN.length)];
   const origin = Date.now() - 3000;
@@ -3826,11 +3939,11 @@ function runDemo() {
   } else for (const p of PREFS) consider(p.code, p.lat, p.lon);
   const areas = [...best].map(([code, I]) => ({ pref: PREFS[code - 1].name, name: PREFS[code - 1].name, idx: toShindoIdx(I) }))
     .filter((a) => a.idx >= 4).sort((a, b) => b.idx - a.idx);
-  const t = jst(origin);
+  const jo = jst(origin);
   const m = {
     code: 556, test: true, cancelled: false,
     issue: { eventId: 'demo-' + origin, serial: '1' },
-    earthquake: { originTime: `${t.y}/${p2(t.mo)}/${p2(t.d)} ${p2(t.h)}:${p2(t.mi)}:${p2(t.s)}`, hypocenter: { name: sc.name, latitude: sc.lat, longitude: sc.lon, depth: sc.depth, magnitude: sc.mag } },
+    earthquake: { originTime: `${jo.y}/${p2(jo.mo)}/${p2(jo.d)} ${p2(jo.h)}:${p2(jo.mi)}:${p2(jo.s)}`, hypocenter: { name: sc.name, latitude: sc.lat, longitude: sc.lon, depth: sc.depth, magnitude: sc.mag } },
     areas: areas.map((a) => ({ pref: a.pref, name: a.name, scaleFrom: IDX_TO_P2P[a.idx], scaleTo: IDX_TO_P2P[a.idx] })),
   };
   closeModals();
@@ -3858,7 +3971,7 @@ function bindSettings() {
       else S[k] = el.type === 'range' || /^\d+(\.\d+)?$/.test(el.value) ? +el.value : el.value;
       if (k === 'notify' && S.notify && 'Notification' in window && Notification.permission !== 'granted') {
         const p = await Notification.requestPermission().catch(() => 'denied');
-        if (p !== 'granted') { S.notify = false; el.checked = false; toast('通知が許可されませんでした。ブラウザの設定を確認してください。', 'warn'); }
+        if (p !== 'granted') { S.notify = false; el.checked = false; toast(t('通知が許可されませんでした。ブラウザの設定を確認してください。', 'Notifications were not allowed. Please check your browser settings.'), 'warn'); }
       }
       if (k === 'depthExag' || k === 'landExag') applyExaggeration();
       if (k === 'showPrefTint') prefFadeTarget = State.selected && S.showPrefTint ? 1 : 0;
@@ -3881,18 +3994,32 @@ function bindSettings() {
   $('eew-close').onclick = () => { if (State.eew?.demo) endEEW(); else $('eew').classList.add('hidden'); };
   $('rh-skip').onclick = () => stopReplay();
   const sel = $('set-me');
-  sel.innerHTML = '<option value="">設定しない</option><option value="geo">現在地</option>' + PREFS.map((p) => `<option value="${p.code}">${p.name}（${p.cap}）</option>`).join('');
+  sel.innerHTML = `<option value="">${t('設定しない', 'Not set')}</option><option value="geo">${t('現在地', 'Current location')}</option>` + PREFS.map((p) => `<option value="${p.code}">${t(`${p.label}（${p.capLabel}）`, `${p.label} (${p.capLabel})`)}</option>`).join('');
   sel.value = S.me;
   sel.onchange = () => {
     S.me = sel.value;
     if (S.me === 'geo') { getGeo(); return; }
     const p = PREFS.find((x) => String(x.code) === S.me);
     S.meLat = p?.lat ?? null; S.meLon = p?.lon ?? null;
-    setMe(S.meLat, S.meLon, p?.cap);
+    setMe(S.meLat, S.meLon, p?.capLabel);
     saveSettings();
     renderList();
   };
   $('btn-geo').onclick = () => { sel.value = 'geo'; S.me = 'geo'; getGeo(); };
+  // 表示言語：切り替えたら、いまの表示（共有リンクと同じ内容）を保ったまま読み込み直す
+  const langSel = $('set-lang');
+  langSel.value = S.lang || 'auto';
+  const switchLang = (v) => {
+    S.lang = v; saveSettings();
+    const want = v === 'auto' ? (/^ja\b/i.test(navigator.language || 'ja') ? 'ja' : 'en') : v;
+    if (want === LANG) return;
+    const q = new URLSearchParams(location.search); q.delete('lang');
+    const qs = q.toString().replace(/=(&|$)/g, '$1');
+    history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + Share.build());
+    location.reload();
+  };
+  langSel.onchange = () => switchLang(langSel.value);
+  $('btn-lang').onclick = () => switchLang(EN ? 'ja' : 'en');
   document.querySelectorAll('#mobile-tabs [data-tab]').forEach((b) => b.onclick = () => setMobileTab(b.dataset.tab));
   addEventListener('keydown', (e) => {
     if (e.target.closest('input, select, textarea')) return;
@@ -3913,14 +4040,14 @@ function bindSettings() {
   });
 }
 function getGeo() {
-  if (!navigator.geolocation) { toast('この端末では現在地を取得できません', 'warn'); return; }
+  if (!navigator.geolocation) { toast(t('この端末では現在地を取得できません', 'Location is not available on this device'), 'warn'); return; }
   navigator.geolocation.getCurrentPosition((p) => {
     S.meLat = p.coords.latitude; S.meLon = p.coords.longitude; S.me = 'geo';
-    setMe(S.meLat, S.meLon, '現在地'); saveSettings();
+    setMe(S.meLat, S.meLon, t('現在地', 'You')); saveSettings();
     renderList();
-    toast('現在地を設定しました', 'ok');
+    toast(t('現在地を設定しました', 'Your location has been set'), 'ok');
   }, () => {
-    toast('現在地を取得できませんでした', 'warn');
+    toast(t('現在地を取得できませんでした', 'Could not get your location'), 'warn');
     if (S.meLat == null) { S.me = ''; $('set-me').value = ''; saveSettings(); }
   }, { timeout: 10000, maximumAge: 600000 });
 }
@@ -4020,9 +4147,9 @@ const Share = {
     try {
       if (navigator.share && (IS_MOBILE || matchMedia('(pointer: coarse)').matches)) { await navigator.share({ title: document.title, url }); return; }
       await navigator.clipboard.writeText(url);
-      toast('この表示のリンクをコピーしました', 'ok');
+      toast(t('この表示のリンクをコピーしました', 'Link to this view copied'), 'ok');
     } catch (e) {
-      if (e?.name !== 'AbortError') toast('リンクをコピーできませんでした。アドレス欄のURLを使ってください', 'warn');
+      if (e?.name !== 'AbortError') toast(t('リンクをコピーできませんでした。アドレス欄のURLを使ってください', 'Could not copy the link. Please use the URL in the address bar.'), 'warn');
     }
   },
   // リンクで開いたとき、その表示を再現する。何かを再現したら true
@@ -4060,7 +4187,7 @@ const Share = {
     else if (p.get('eq')) {
       const ev = Store.events.get('jma:' + p.get('eq'));
       if (ev) { selectEvent(ev); done = true; }
-      else toast('リンクの地震は見つかりませんでした（表示できるのは約1か月前までの地震です）', 'warn', 7000);
+      else toast(t('リンクの地震は見つかりませんでした（表示できるのは約1か月前までの地震です）', 'The linked earthquake was not found (only the last month or so is available)'), 'warn', 7000);
     }
     const sc = nums('sec');
     if (sc.length >= 4 && sc.slice(0, 4).every(Number.isFinite)) {
@@ -4217,29 +4344,30 @@ async function main() {
   Globe.init();
   applyVisibility();
   applyExaggeration();
-  if (S.meLat != null) setMe(S.meLat, S.meLon, S.me === 'geo' ? '現在地' : PREFS.find((p) => String(p.code) === S.me)?.cap);
+  if (S.meLat != null) setMe(S.meLat, S.meLon, S.me === 'geo' ? t('現在地', 'You') : PREFS.find((p) => String(p.code) === S.me)?.capLabel);
   requestAnimationFrame(frame);
 
-  Loading.set('terrain', '地形・海底地形', '0%');
-  Loading.set('jma', '気象庁の地震情報', '…');
-  const jmaP = fetchJmaList().then((f) => { Loading.set('jma', '気象庁の地震情報', `${Store.events.size}件`, true); return f; }).catch(async () => {
+  const L_TER = t('地形・海底地形', 'Terrain & bathymetry'), L_JMA = t('気象庁の地震情報', 'JMA earthquake reports');
+  Loading.set('terrain', L_TER, '0%');
+  Loading.set('jma', L_JMA, '…');
+  const jmaP = fetchJmaList().then((f) => { Loading.set('jma', L_JMA, t(`${Store.events.size}件`, `${Store.events.size}`), true); return f; }).catch(async () => {
     // 気象庁が読めないときは P2P の履歴を使う
     try {
       const r = await fetch(`${P2P_API}?codes=551&limit=100`);
       const arr = await r.json();
       for (const m of arr.reverse()) ingestP2P(m);
-      Loading.set('jma', '地震情報（P2P）', `${Store.events.size}件`, true);
+      Loading.set('jma', t('地震情報（P2P）', 'Earthquake reports (P2P)'), t(`${Store.events.size}件`, `${Store.events.size}`), true);
     } catch {
-      Loading.set('jma', '地震情報', '取得失敗', true);
+      Loading.set('jma', t('地震情報', 'Earthquake reports'), t('取得失敗', 'failed'), true);
       Store.loadFailed = true;
     }
   });
   try {
-    await loadTerrain((d, n) => { Loading.set('terrain', '地形・海底地形', `${d}/${n}`); Loading.bar(d / n * 0.8); });
-    Loading.set('terrain', '地形・海底地形', HM.failed ? `${HM.total - HM.failed}/${HM.total}` : '完了', true);
-    if (HM.failed) toast(`地形データの一部（${HM.failed}枚）を読み込めませんでした`, 'warn');
+    await loadTerrain((d, n) => { Loading.set('terrain', L_TER, `${d}/${n}`); Loading.bar(d / n * 0.8); });
+    Loading.set('terrain', L_TER, HM.failed ? `${HM.total - HM.failed}/${HM.total}` : t('完了', 'done'), true);
+    if (HM.failed) toast(t(`地形データの一部（${HM.failed}枚）を読み込めませんでした`, `Some terrain tiles (${HM.failed}) could not be loaded`), 'warn');
   } catch (e) {
-    Loading.set('terrain', '地形・海底地形', '失敗', true);
+    Loading.set('terrain', L_TER, t('失敗', 'failed'), true);
   }
   terrain.geometry = buildTerrainGeometry(IS_MOBILE ? 0.085 : 0.05);
   buildWalls();
@@ -4263,7 +4391,7 @@ async function main() {
   setTimeout(() => { if (!location.hash || !Share.apply(location.hash)) setView('oblique', 3.2); }, 250);
 
   startRealtime();
-  loadPrefectures().then(() => { if (S.me === 'geo') renderList(); }).catch(() => toast('県境データを読み込めませんでした', 'warn'));
+  loadPrefectures().then(() => { if (S.me === 'geo') renderList(); }).catch(() => toast(t('県境データを読み込めませんでした', 'Could not load prefecture borders'), 'warn'));
   if (S.range === '20y') loadUsgs('ext', rebuildUsgs).then(rebuildUsgs);
   let pending = null;
   loadUsgs('base', () => { clearTimeout(pending); pending = setTimeout(rebuildUsgs, 120); }).then(() => { rebuildUsgs(); });
